@@ -110,24 +110,69 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
     Endpoint: GET /v2.2/{wallet}/nft?chain=polygon&format=decimal&limit=10
     The response envelope has a `result` list of NFT metadata objects.
     """
+    import json as _json
     try:
         url = f"{BASE_URL}/{wallet}/nft"
-        params = {"chain": "polygon", "format": "decimal", "limit": 10}
+        params = {
+            "chain": "polygon",
+            "format": "decimal",
+            "limit": 10,
+            "normalizeMetadata": "true",
+            "media_items": "true",
+        }
         resp = await client.get(url, params=params, headers=HEADERS)
         resp.raise_for_status()
         data = resp.json()
         raw_nfts: list[dict] = data.get("result", [])
 
         nfts: list[dict] = []
-        for n in raw_nfts:
+        for item in raw_nfts:
+            # Extract image from multiple fallback sources
+            norm     = item.get("normalized_metadata") or {}
+            metadata = item.get("metadata") or {}
+            if isinstance(metadata, str):
+                try: metadata = _json.loads(metadata)
+                except: metadata = {}
+
+            # Try Moralis pre-cached media items first (most reliable)
+            media_image = ""
+            media_items = item.get("media") or {}
+            if isinstance(media_items, dict):
+                media_collection = media_items.get("media_collection") or {}
+                # Prefer medium size, then low, then high, then original
+                for size_key in ["medium", "low", "high"]:
+                    size_obj = media_collection.get(size_key) or {}
+                    url = size_obj.get("url") or ""
+                    if url and url.startswith("http"):
+                        media_image = url
+                        break
+                if not media_image:
+                    original = media_items.get("original_media_url") or ""
+                    if original and original.startswith("http"):
+                        media_image = original
+
+            image = (
+                media_image or
+                norm.get("image") or
+                norm.get("image_url") or
+                metadata.get("image") or
+                metadata.get("image_url") or
+                item.get("collection_logo") or ""
+            )
+
+            # Convert IPFS to HTTP via a reliable gateway
+            if image and image.startswith("ipfs://"):
+                image = image.replace("ipfs://", "https://ipfs.io/ipfs/")
+
             nfts.append(
                 {
-                    "token_address": n.get("token_address") or "",
-                    "token_id":      n.get("token_id") or "",
-                    "name":          n.get("name") or "Unknown NFT",
-                    "symbol":        (n.get("symbol") or "NFT").upper(),
-                    "token_uri":     n.get("token_uri") or "",
-                    "chain":         "polygon",
+                    "token_address":   item.get("token_address") or "",
+                    "token_id":        item.get("token_id") or "",
+                    "name":            norm.get("name") or item.get("name") or "Unknown NFT",
+                    "symbol":          (item.get("symbol") or "NFT").upper(),
+                    "image":           image or "",
+                    "collection_logo": item.get("collection_logo") or "",
+                    "chain":           "polygon",
                 }
             )
 

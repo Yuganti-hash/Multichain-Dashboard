@@ -48,31 +48,126 @@ const TABS = [
 // NFT image resolver
 // ===========================================================================
 
-function resolveNftImage(nft) {
-  // Try metadata image first
-  const raw = nft.image || nft.token_uri || nft.metadata?.image || ""
-
-  if (!raw) return null
-
-  // Convert IPFS to HTTP gateway
-  if (raw.startsWith("ipfs://")) {
-    return raw.replace("ipfs://", "https://ipfs.io/ipfs/")
-  }
-
-  // Already HTTP
-  if (raw.startsWith("http")) return raw
-
-  // Base64 image
-  if (raw.startsWith("data:")) return raw
-
-  return null
-}
+// IPFS gateways tried in order — first one that loads wins
+const IPFS_GATEWAYS = [
+  "https://ipfs.io/ipfs/",
+  "https://gateway.pinata.cloud/ipfs/",
+  "https://dweb.link/ipfs/",
+  "https://cloudflare-ipfs.com/ipfs/",
+];
 
 function resolveImage(nft) {
-  let src = nft.image || ""
-  if (src.startsWith("ipfs://"))
-    src = src.replace("ipfs://", "https://cloudflare-ipfs.com/ipfs/")
-  return src
+  // Parse metadata if it's a JSON string
+  let parsedMetadata = nft.metadata;
+  if (typeof parsedMetadata === "string") {
+    try { parsedMetadata = JSON.parse(parsedMetadata); } catch { parsedMetadata = {}; }
+  }
+  parsedMetadata = parsedMetadata || {};
+
+  // Try primary image fields first (skip token_uri — it's a metadata JSON endpoint, not an image)
+  const candidates = [
+    nft.image,
+    parsedMetadata.image,
+    parsedMetadata.image_url,
+    nft.collection_logo,   // ← OpenSea CDN fallback supplied by backend
+  ];
+
+  for (const raw of candidates) {
+    if (!raw) continue;
+    if (raw.startsWith("data:") || raw.startsWith("https://") || raw.startsWith("http://")) return raw;
+    if (raw.startsWith("ipfs://")) return IPFS_GATEWAYS[0] + raw.slice(7);
+  }
+
+  return null;
+}
+
+function getGatewayFallbacks(src) {
+  // Returns ordered list of URLs to try if current src fails
+  if (!src) return [];
+  for (const gw of IPFS_GATEWAYS) {
+    if (src.startsWith(gw)) {
+      const cid = src.slice(gw.length);
+      return IPFS_GATEWAYS.filter((g) => g !== gw).map((g) => g + cid);
+    }
+  }
+  return [];
+}
+
+// Per-card NFT image component with gateway fallback
+function NftImage({ nft }) {
+  const initial = resolveImage(nft);
+  const [src, setSrc]         = React.useState(initial);
+  const [failed, setFailed]   = React.useState(!initial);
+  const [loaded, setLoaded]   = React.useState(false);
+  const triedRef              = React.useRef(new Set());
+
+  // Reset state when the nft prop changes (e.g. new search)
+  React.useEffect(() => {
+    const next = resolveImage(nft);
+    triedRef.current = new Set();
+    setSrc(next);
+    setFailed(!next);
+    setLoaded(false);
+  }, [nft]);
+
+  const handleError = () => {
+    if (src) triedRef.current.add(src);
+    // Try collection_logo as a direct fallback before IPFS gateways
+    const collectionLogo = nft.collection_logo;
+    if (collectionLogo && !triedRef.current.has(collectionLogo)) {
+      triedRef.current.add(src || "");
+      setSrc(collectionLogo);
+      return;
+    }
+    const fallbacks = getGatewayFallbacks(src || initial || "");
+    const next = fallbacks.find((u) => !triedRef.current.has(u));
+    if (next) {
+      setSrc(next);
+    } else {
+      setFailed(true);
+    }
+  };
+
+  if (failed || !src) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <svg className="w-12 h-12 text-gray-600" fill="none"
+             stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586
+               a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2
+               2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Placeholder shown while loading */}
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <svg className="w-12 h-12 text-gray-700 animate-pulse" fill="none"
+               stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586
+                 a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2
+                 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      )}
+      <img
+        key={src}
+        src={src}
+        alt={nft.name || "NFT"}
+        className="w-full h-full object-cover"
+        style={{ display: loaded ? "block" : "none" }}
+        onLoad={() => setLoaded(true)}
+        onError={handleError}
+        referrerPolicy="no-referrer"
+      />
+    </>
+  );
 }
 
 // ===========================================================================
@@ -336,23 +431,7 @@ export default function App() {
                         {/* NFT image — real or placeholder */}
                         <div className="relative w-full aspect-square rounded-lg overflow-hidden mb-3
                           bg-gradient-to-br from-indigo-900/50 to-purple-900/50">
-                          {resolveImage(nft) && (
-                            <img
-                              src={resolveImage(nft)}
-                              alt={nft.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => { e.target.style.display = 'none' }}
-                            />
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <svg className="w-12 h-12 text-gray-600" fill="none"
-                                 stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586
-                                   a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 
-                                   2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
+                          <NftImage nft={nft} />
                         </div>
 
                         {/* NFT details */}
