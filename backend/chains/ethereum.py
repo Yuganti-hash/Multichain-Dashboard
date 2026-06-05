@@ -136,9 +136,9 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
                 # Prefer medium size, then low, then high, then original
                 for size_key in ["medium", "low", "high"]:
                     size_obj = media_collection.get(size_key) or {}
-                    url = size_obj.get("url") or ""
-                    if url and url.startswith("http"):
-                        media_image = url
+                    media_url = size_obj.get("url") or ""
+                    if media_url and media_url.startswith("http"):
+                        media_image = media_url
                         break
                 if not media_image:
                     original = media_items.get("original_media_url") or ""
@@ -154,9 +154,13 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
                 item.get("collection_logo") or ""
             )
 
-            # Convert IPFS to HTTP via a reliable gateway
+            # Convert IPFS to HTTP via nftstorage.link (reliable, good CORS support)
             if image and image.startswith("ipfs://"):
-                image = image.replace("ipfs://", "https://ipfs.io/ipfs/")
+                image = image.replace("ipfs://", "https://nftstorage.link/ipfs/")
+            elif image and image.startswith("https://ipfs.io/ipfs/"):
+                image = image.replace("https://ipfs.io/ipfs/", "https://nftstorage.link/ipfs/")
+            elif image and image.startswith("https://cloudflare-ipfs.com/ipfs/"):
+                image = image.replace("https://cloudflare-ipfs.com/ipfs/", "https://nftstorage.link/ipfs/")
 
             nft_obj = {
                 "token_address":    item.get("token_address", ""),
@@ -165,6 +169,7 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
                 "symbol":           item.get("symbol", ""),
                 "image":            image or "",
                 "collection_logo":  item.get("collection_logo") or "",
+                "metadata":         metadata,
                 "chain":            "ethereum",
             }
             nfts.append(nft_obj)

@@ -50,9 +50,10 @@ const TABS = [
 
 // IPFS gateways tried in order — first one that loads wins
 const IPFS_GATEWAYS = [
+  "https://nftstorage.link/ipfs/",
   "https://ipfs.io/ipfs/",
-  "https://gateway.pinata.cloud/ipfs/",
   "https://dweb.link/ipfs/",
+  "https://gateway.pinata.cloud/ipfs/",
   "https://cloudflare-ipfs.com/ipfs/",
 ];
 
@@ -64,18 +65,25 @@ function resolveImage(nft) {
   }
   parsedMetadata = parsedMetadata || {};
 
-  // Try primary image fields first (skip token_uri — it's a metadata JSON endpoint, not an image)
+  // Try every known image field in order of reliability
   const candidates = [
     nft.image,
     parsedMetadata.image,
     parsedMetadata.image_url,
-    nft.collection_logo,   // ← OpenSea CDN fallback supplied by backend
+    parsedMetadata.animation_url,
+    nft.collection_logo,   // OpenSea CDN fallback supplied by backend
   ];
 
   for (const raw of candidates) {
-    if (!raw) continue;
-    if (raw.startsWith("data:") || raw.startsWith("https://") || raw.startsWith("http://")) return raw;
-    if (raw.startsWith("ipfs://")) return IPFS_GATEWAYS[0] + raw.slice(7);
+    if (!raw || typeof raw !== "string") continue;
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    // Already a usable HTTP/data URL
+    if (trimmed.startsWith("data:") || trimmed.startsWith("https://") || trimmed.startsWith("http://")) return trimmed;
+    // Convert IPFS protocol URI → HTTP gateway
+    if (trimmed.startsWith("ipfs://")) return IPFS_GATEWAYS[0] + trimmed.slice(7);
+    // Handle bare CID (starts with Qm... or baf...)
+    if (/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[a-z2-7]{56})/.test(trimmed)) return IPFS_GATEWAYS[0] + trimmed;
   }
 
   return null;
@@ -130,31 +138,32 @@ function NftImage({ nft }) {
 
   if (failed || !src) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center">
-        <svg className="w-12 h-12 text-gray-600" fill="none"
-             stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586
-               a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2
-               2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+           style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)" }}>
+        {/* NFT placeholder: simple frame + mountain icon */}
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="32" height="32" rx="4" stroke="#6366f1" strokeWidth="1.5" fill="none" opacity="0.6"/>
+          <circle cx="13" cy="15" r="3" fill="#818cf8" opacity="0.7"/>
+          <path d="M4 27 L13 18 L20 24 L26 19 L36 27" stroke="#6366f1" strokeWidth="1.5"
+                strokeLinejoin="round" fill="none" opacity="0.8"/>
         </svg>
+        <span style={{ fontSize: "10px", color: "#818cf8", fontFamily: "monospace", opacity: 0.8 }}>No Image</span>
       </div>
     );
   }
 
   return (
     <>
-      {/* Placeholder shown while loading */}
+      {/* Shimmer placeholder while image loads */}
       {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <svg className="w-12 h-12 text-gray-700 animate-pulse" fill="none"
-               stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586
-                 a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2
-                 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </div>
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(90deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)",
+            backgroundSize: "200% 100%",
+            animation: "nft-shimmer 1.5s ease-in-out infinite",
+          }}
+        />
       )}
       <img
         key={src}
@@ -422,43 +431,75 @@ export default function App() {
             {activeTab === "nfts" && (
               <div className="transition-all duration-200">
                 {portfolio.nfts && portfolio.nfts.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {portfolio.nfts.map((nft, idx) => (
-                      <div
-                        key={`${nft.token_address}-${nft.token_id}-${idx}`}
-                        className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition-colors"
-                      >
-                        {/* NFT image — real or placeholder */}
-                        <div className="relative w-full aspect-square rounded-lg overflow-hidden mb-3
-                          bg-gradient-to-br from-indigo-900/50 to-purple-900/50">
-                          <NftImage nft={nft} />
-                        </div>
-
-                        {/* NFT details */}
-                        <p className="font-medium text-sm text-white truncate">
-                          {nft.name || "Unnamed NFT"}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          #{nft.token_id ? String(nft.token_id).slice(0, 8) : "—"}
-                        </p>
-
-                        {/* Chain badge */}
-                        <span
-                          className="mt-2 inline-block text-xs px-2 py-0.5 rounded-full font-medium"
-                          style={{
-                            backgroundColor:
-                              nft.chain === "ethereum" ? "#627EEA22" :
-                              nft.chain === "polygon"  ? "#8247E522" : "#6B728022",
-                            color:
-                              nft.chain === "ethereum" ? "#627EEA" :
-                              nft.chain === "polygon"  ? "#8247E5" : "#9ca3af",
-                          }}
-                        >
-                          {nft.chain}
+                  <>
+                    {/* Section header */}
+                    <div className="flex items-center justify-between mb-5">
+                      <h2 className="text-white font-bold text-lg">
+                        NFTs{" "}
+                        <span className="text-gray-500 font-normal text-base">
+                          ({portfolio.nfts.length} collectible{portfolio.nfts.length !== 1 ? "s" : ""})
                         </span>
-                      </div>
-                    ))}
-                  </div>
+                      </h2>
+                      <span className="text-xs text-gray-500 font-mono">
+                        Ethereum &middot; Polygon
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      {portfolio.nfts.map((nft, idx) => (
+                        <div
+                          key={`${nft.token_address}-${nft.token_id}-${idx}`}
+                          className="group bg-gray-900 border border-gray-800 rounded-xl overflow-hidden
+                            hover:border-indigo-500/50 transition-all duration-200
+                            hover:shadow-lg hover:shadow-indigo-900/20 hover:-translate-y-0.5"
+                        >
+                          {/* NFT image */}
+                          <div className="relative w-full aspect-square overflow-hidden
+                            bg-gradient-to-br from-indigo-950 to-purple-950">
+                            <NftImage nft={nft} />
+                          </div>
+
+                          {/* NFT details */}
+                          <div className="p-3">
+                            <p className="font-semibold text-xs text-white truncate leading-snug">
+                              {nft.name || "Unnamed NFT"}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-0.5 font-mono truncate">
+                              #{nft.token_id ? String(nft.token_id).slice(0, 10) : "—"}
+                            </p>
+
+                            {/* Badges row */}
+                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                              {/* Type badge */}
+                              <span className="text-xs px-1.5 py-0.5 rounded font-medium"
+                                style={{ backgroundColor: "#1f2937", color: "#9ca3af" }}>
+                                {nft.symbol || "NFT"}
+                              </span>
+
+                              {/* Chain badge */}
+                              <span
+                                className="text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wide"
+                                style={{
+                                  backgroundColor:
+                                    nft.chain === "ethereum" ? "#627EEA18" :
+                                    nft.chain === "polygon"  ? "#8247E518" : "#6B728018",
+                                  color:
+                                    nft.chain === "ethereum" ? "#627EEA" :
+                                    nft.chain === "polygon"  ? "#8247E5" : "#9ca3af",
+                                  border: `1px solid ${
+                                    nft.chain === "ethereum" ? "#627EEA33" :
+                                    nft.chain === "polygon"  ? "#8247E533" : "#6B728033"
+                                  }`,
+                                }}
+                              >
+                                {nft.chain}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   /* Empty NFT state */
                   <div className="bg-gray-900 border border-gray-800 rounded-xl p-16 text-center">
