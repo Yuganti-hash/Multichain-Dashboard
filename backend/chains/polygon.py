@@ -160,9 +160,13 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
                 item.get("collection_logo") or ""
             )
 
-            # Convert IPFS to HTTP via a reliable gateway
+            # Convert IPFS to HTTP via nftstorage.link (reliable, good CORS support)
             if image and image.startswith("ipfs://"):
-                image = image.replace("ipfs://", "https://ipfs.io/ipfs/")
+                image = image.replace("ipfs://", "https://nftstorage.link/ipfs/")
+            elif image and image.startswith("https://ipfs.io/ipfs/"):
+                image = image.replace("https://ipfs.io/ipfs/", "https://nftstorage.link/ipfs/")
+            elif image and image.startswith("https://cloudflare-ipfs.com/ipfs/"):
+                image = image.replace("https://cloudflare-ipfs.com/ipfs/", "https://nftstorage.link/ipfs/")
 
             nfts.append(
                 {

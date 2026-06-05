@@ -37,3 +37,9 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ── NFT card image shimmer loading ─────────────────────────────────────── */
+@keyframes nft-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,0 +1,3360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MultiChain Dashboard — Unified Portfolio Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #FFFFFF;
+      color: #121D33;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      font-family: inherit;
+    }
+
+    input {
+      font-family: inherit;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    :root {
+      --blue: #1656C6;
+      --blue-dark: #0F3F99;
+      --blue-light: #E8F0FD;
+      --navy: #121D33;
+      --navy-mid: #1D2D50;
+      --text-primary: #121D33;
+      --text-secondary: #5E6B85;
+      --text-muted: #8A96AB;
+      --bg: #FFFFFF;
+      --bg-secondary: #F5F7FA;
+      --bg-dark: #0B1426;
+      --border: #E2E8F0;
+      --border-light: #EDF0F5;
+      --green: #00B386;
+      --green-light: #E6F7F3;
+      --red: #E84545;
+      --red-light: #FEF0F0;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    /* PARTICLE CANVAS */
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 64px;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      z-index: 1000;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .nav-logo-mc {
+      font-weight: 800;
+      color: var(--blue);
+      margin-right: 4px;
+      font-size: 18px;
+    }
+
+    .nav-logo-multi {
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .nav-logo-dash {
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-left: 3px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--navy);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-login {
+      background: transparent;
+      color: var(--navy);
+      border: 1.5px solid var(--border);
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-login:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .btn-get-started {
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .btn-get-started:hover {
+      background: var(--blue-dark);
+    }
+
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+
+    .nav-hamburger span {
+      width: 22px;
+      height: 2px;
+      background: var(--navy);
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding-top: 64px;
+      background: linear-gradient(160deg, #F0F5FF 0%, #FFFFFF 50%, #F5F8FF 100%);
+      overflow: hidden;
+    }
+
+    .hero-glow-purple {
+      position: absolute;
+      top: -80px;
+      left: -160px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #C7D8F8 0%, transparent 70%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .hero-glow-cyan {
+      position: absolute;
+      bottom: 0;
+      right: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #D6E8FF 0%, transparent 70%);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 4rem;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-text {
+      flex: 0 0 55%;
+      max-width: 55%;
+    }
+
+    .hero-visual {
+      flex: 0 0 45%;
+      max-width: 45%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #E8F0FD;
+      border: 1px solid #BDD0F7;
+      color: var(--blue);
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 1.75rem;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #E84545;
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(232, 69, 69, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 5px rgba(232, 69, 69, 0);
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.12;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 .cyan {
+      color: var(--blue);
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 480px;
+      line-height: 1.75;
+      margin: 1.75rem 0;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(22, 86, 198, 0.25);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--navy);
+      border: 1.5px solid var(--border);
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .hero-trust {
+      display: flex;
+      gap: 1.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-trust span {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .hero-trust span::before {
+      content: '✓';
+      color: var(--green);
+      margin-right: 5px;
+      font-weight: 700;
+    }
+
+    /* DASHBOARD CARD — LANDING (decorative only) */
+    .dashboard-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 40px rgba(22, 86, 198, 0.10), 0 1px 3px rgba(18, 29, 51, 0.06);
+      width: 100%;
+      max-width: 380px;
+      animation: float 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(-8px);
+      }
+
+      100% {
+        transform: translateY(8px);
+      }
+    }
+
+    .dc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .dc-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dc-live {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    .dc-live-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-green 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-green {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 179, 134, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 4px rgba(0, 179, 134, 0);
+      }
+    }
+
+    /* Blurred/masked decorative value — landing only */
+    .dc-value-masked {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+      margin-bottom: 2px;
+      filter: blur(6px);
+      user-select: none;
+    }
+
+    .dc-locked-hint {
+      font-size: 12px;
+      color: var(--blue);
+      font-family: var(--mono);
+      background: var(--blue-light);
+      border: 1px solid #BDD0F7;
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin-bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dc-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    /* Skeleton shimmer rows */
+    .dc-skeleton-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .dc-skeleton-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .skel {
+      background: linear-gradient(90deg, #E8EDF3 25%, #F4F6FA 50%, #E8EDF3 75%);
+      background-size: 200% 100%;
+      border-radius: 4px;
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 200% 0;
+      }
+
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    .skel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .skel-label {
+      height: 12px;
+      width: 80px;
+    }
+
+    .skel-val {
+      height: 12px;
+      width: 55px;
+    }
+
+    .skel-pct {
+      height: 12px;
+      width: 38px;
+    }
+
+    .dc-prism {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .dc-prism-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .dc-prism-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .dc-prism-score-masked {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--blue);
+      font-family: var(--mono);
+      filter: blur(4px);
+      user-select: none;
+    }
+
+    .dc-prism-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .dc-prism-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), #5B8FFF);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dc-unlock-btn {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 10px 0;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--mono);
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+
+    .dc-unlock-btn:hover {
+      background: var(--blue-dark);
+    }
+
+    /* STATS BAR */
+    .stats-bar {
+      background: var(--navy);
+      padding: 2.5rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stats-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 0 1.5rem;
+      position: relative;
+    }
+
+    .stat-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 40px;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .stat-value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-value.cyan {
+      color: #5B8FFF;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      font-weight: 500;
+    }
+
+    /* FEATURES */
+    .features {
+      padding: 6rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-label {
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.6rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      margin-bottom: 4rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .feature-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      transform: translateY(24px);
+    }
+
+    .feature-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .feature-card:hover {
+      border-color: #BDD0F7;
+      box-shadow: 0 6px 24px rgba(22, 86, 198, 0.10);
+      transform: translateY(-3px);
+    }
+
+    .feature-card.visible:hover {
+      transform: translateY(-3px);
+    }
+
+    .feature-card.highlighted {
+      border: 1.5px solid var(--blue);
+      background: #F6F9FF;
+    }
+
+    .feature-icon {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--navy);
+    }
+
+    .feature-new-badge {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--blue);
+      background: var(--blue-light);
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--blue);
+      background: var(--blue-light);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #BDD0F7;
+    }
+
+    /* HOW IT WORKS */
+    .how-it-works {
+      padding: 6rem 2rem;
+      background: var(--bg-secondary);
+      position: relative;
+      z-index: 1;
+    }
+
+    .how-it-works-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .steps-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: 4rem;
+      position: relative;
+    }
+
+    .steps-row::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: 15%;
+      right: 15%;
+      height: 1px;
+      border-top: 1.5px dashed var(--border);
+    }
+
+    .step-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1rem;
+      position: relative;
+    }
+
+    .step-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--blue-light);
+      border: 2px solid #BDD0F7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-number {
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .step-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--navy);
+    }
+
+    .step-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 200px;
+    }
+
+    /* PRISM */
+    .prism-section {
+      padding: 6rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .prism-inner {
+      display: flex;
+      align-items: center;
+      gap: 5rem;
+    }
+
+    .prism-text {
+      flex: 1;
+    }
+
+    .prism-visual {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .prism-text h2 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 1rem 0;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+    }
+
+    .prism-text h2 .cyan {
+      color: var(--blue);
+    }
+
+    .prism-text p {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin: 1.5rem 0;
+      font-size: 15px;
+    }
+
+    .prism-points {
+      margin: 1.5rem 0 2rem;
+    }
+
+    .prism-point {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .prism-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--green-light);
+      border: 1px solid rgba(0, 179, 134, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .prism-point-text {
+      font-size: 14px;
+      color: var(--navy);
+      line-height: 1.5;
+    }
+
+    .prism-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 8px 32px rgba(22, 86, 198, 0.08);
+    }
+
+    .prism-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .prism-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .prism-ready-badge {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green);
+      background: var(--green-light);
+      border: 1px solid rgba(0, 179, 134, 0.2);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .prism-ring-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .prism-ring-wrapper {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    .prism-ring-svg {
+      transform: rotate(-90deg);
+      width: 120px;
+      height: 120px;
+    }
+
+    .prism-ring-bg {
+      fill: none;
+      stroke: var(--bg-secondary);
+      stroke-width: 8;
+    }
+
+    .prism-ring-fill {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .prism-ring-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .prism-ring-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--blue);
+      font-family: var(--mono);
+    }
+
+    .prism-ring-of {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .prism-chain-bars {
+      margin-top: 1.5rem;
+    }
+
+    .prism-chain-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .pcb-label {
+      width: 70px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .pcb-track {
+      flex: 1;
+      height: 5px;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .pcb-fill {
+      height: 100%;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pcb-score {
+      width: 28px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      font-family: var(--mono);
+      text-align: right;
+    }
+
+    .prism-info-box {
+      margin-top: 1rem;
+      background: var(--blue-light);
+      border: 1px solid #BDD0F7;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--blue);
+      font-family: var(--mono);
+      line-height: 1.5;
+    }
+
+    /* CTA */
+    .cta-section {
+      padding: 8rem 2rem;
+      text-align: center;
+      background: var(--navy);
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(91, 143, 255, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+      position: relative;
+    }
+
+    .cta-section h2 .cyan {
+      color: #5B8FFF;
+    }
+
+    .cta-subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      margin: 1.5rem 0;
+      font-size: 1.05rem;
+    }
+
+    .cta-input-row {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin: 2rem 0 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .cta-input {
+      width: 420px;
+      max-width: 100%;
+      padding: 13px 18px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      color: #FFFFFF;
+      font-family: var(--mono);
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .cta-input:focus {
+      border-color: #5B8FFF;
+      outline: none;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .cta-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-analyze {
+      background: #5B8FFF;
+      color: #FFFFFF;
+      font-weight: 700;
+      padding: 13px 26px;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-analyze:hover {
+      background: var(--blue);
+      box-shadow: 0 4px 20px rgba(91, 143, 255, 0.3);
+    }
+
+    .try-chips {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+    }
+
+    .try-label {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .try-chip {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: #5B8FFF;
+      background: transparent;
+      border: 1px solid rgba(91, 143, 255, 0.35);
+      padding: 5px 14px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .try-chip:hover {
+      background: rgba(91, 143, 255, 0.12);
+      border-color: #5B8FFF;
+    }
+
+    .powered-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .powered-label {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .powered-item {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.45);
+      font-weight: 500;
+    }
+
+    .powered-dot {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* DASHBOARD APP — shown after wallet entry */
+    .app-shell {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      background: #0B1223;
+      color: #E2E8F0;
+    }
+
+    .app-shell.active {
+      display: flex;
+    }
+
+    .app-topbar {
+      height: 60px;
+      background: #0F1A2E;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .app-logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .app-logo-text span {
+      color: #5B8FFF;
+    }
+
+    .app-logo-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      display: block;
+      margin-top: 1px;
+    }
+
+    .app-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .app-status-dot {
+      width: 7px;
+      height: 7px;
+      background: #00B386;
+      border-radius: 50%;
+      animation: pulse-green 2s ease-in-out infinite;
+    }
+
+    .app-body {
+      flex: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      width: 100%;
+    }
+
+    .search-box {
+      background: #0F1A2E;
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .search-box h3 {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 500;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #5B8FFF;
+    }
+
+    .search-input::placeholder {
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-search {
+      background: #5B8FFF;
+      color: #fff;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-search:hover {
+      background: var(--blue);
+    }
+
+    .search-hint {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-top: 0.5rem;
+      font-family: var(--mono);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 2rem;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab.active {
+      color: #fff;
+      border-bottom-color: #5B8FFF;
+    }
+
+    .tab-badge {
+      background: rgba(91, 143, 255, 0.2);
+      color: #5B8FFF;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .tab-badge.pink {
+      background: rgba(255, 80, 120, 0.15);
+      color: #ff6090;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Overview */
+    .overview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .overview-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .wallet-badge {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+      background: #0F1A2E;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+
+    .metric-card.highlight {
+      border-color: rgba(91, 143, 255, 0.3);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+      margin-top: 4px;
+    }
+
+    .risk-bar {
+      background: #0F1A2E;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .risk-label {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .risk-label span {
+      display: block;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+      margin-top: 3px;
+    }
+
+    .risk-badge {
+      background: rgba(249, 168, 0, 0.15);
+      color: #F9A800;
+      border: 1px solid rgba(249, 168, 0, 0.3);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .mini-prism-note {
+      background: rgba(91, 143, 255, 0.07);
+      border: 1px solid rgba(91, 143, 255, 0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 1.5rem;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.6;
+    }
+
+    .mini-prism-note strong {
+      color: #5B8FFF;
+    }
+
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-card {
+      background: #0F1A2E;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+
+    .chart-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Donut chart */
+    .donut-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .donut-svg {
+      width: 160px;
+      height: 160px;
+    }
+
+    .donut-legend {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .donut-leg-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .donut-leg-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Bar chart */
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      width: 40px;
+      text-align: right;
+      flex-shrink: 0;
+      font-family: var(--mono);
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: #F3BA2F;
+      transition: width 1s ease;
+    }
+
+    .bar-val {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      width: 60px;
+      font-family: var(--mono);
+    }
+
+    /* PRISM section */
+    .prism-section-app {
+      background: #0F1A2E;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .prism-section-app h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .prism-section-app .prism-sub {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 1.25rem;
+    }
+
+    .prism-top-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .prism-circle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .prism-circle-svg {
+      width: 100px;
+      height: 100px;
+    }
+
+    .prism-circle-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 8;
+    }
+
+    .prism-circle-fill {
+      fill: none;
+      stroke: #00B386;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 1.5s ease;
+    }
+
+    .prism-circle-text {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--mono);
+    }
+
+    .prism-circle-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .prism-ready-pill {
+      background: rgba(0, 179, 134, 0.15);
+      color: #00B386;
+      border: 1px solid rgba(0, 179, 134, 0.3);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .prism-score-desc h5 {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .prism-score-desc p {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .prism-score-desc .note {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .chain-health-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .chain-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .chain-bar-name {
+      width: 75px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .chain-bar-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .chain-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 1.2s ease;
+    }
+
+    .chain-bar-score {
+      width: 30px;
+      font-size: 12px;
+      font-family: var(--mono);
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: right;
+    }
+
+    .prism-arch-note {
+      background: rgba(91, 143, 255, 0.08);
+      border: 1px solid rgba(91, 143, 255, 0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.6;
+      margin-top: 1rem;
+      font-family: var(--mono);
+    }
+
+    .prism-arch-note strong {
+      color: #5B8FFF;
+    }
+
+    /* Chain breakdown */
+    .chain-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .chain-card {
+      background: #0F1A2E;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+
+    .chain-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .chain-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .chain-pct-badge {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: var(--mono);
+    }
+
+    .chain-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .chain-val {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .chain-val.dim {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .chain-bar-mini {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .chain-bar-mini-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    .chain-status {
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .chain-status.active {
+      color: #00B386;
+    }
+
+    .chain-status.inactive {
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* FOOTER */
+    .footer {
+      background: #0B1426;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      padding: 3.5rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .footer-brand p {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 13px;
+      margin-top: 1rem;
+      line-height: 1.7;
+    }
+
+    .footer-brand .nav-logo-mc {
+      color: #5B8FFF;
+    }
+
+    .footer-brand .nav-logo-multi {
+      color: #FFFFFF;
+    }
+
+    .footer-brand .nav-logo-dash {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .footer-col h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.35);
+      margin-bottom: 1.25rem;
+      font-weight: 600;
+    }
+
+    .footer-col a {
+      display: block;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.55);
+      margin-bottom: 0.75rem;
+      transition: color 0.2s;
+    }
+
+    .footer-col a:hover {
+      color: #FFFFFF;
+    }
+
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 2rem auto 0;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 1.5rem;
+    }
+
+    .footer-bottom p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* MOBILE MENU */
+    .mobile-menu {
+      display: none;
+    }
+
+    /* RESPONSIVE */
+    @media(max-width:768px) {
+
+      .nav-links,
+      .nav-actions {
+        display: none;
+      }
+
+      .nav-hamburger {
+        display: flex;
+      }
+
+      .mobile-menu.open {
+        display: flex;
+        position: fixed;
+        top: 64px;
+        left: 0;
+        width: 100%;
+        height: calc(100vh - 64px);
+        background: #FFFFFF;
+        flex-direction: column;
+        padding: 2rem;
+        gap: 1.5rem;
+        z-index: 999;
+        align-items: center;
+        border-top: 1px solid var(--border);
+      }
+
+      .mobile-menu a {
+        font-size: 16px;
+        color: var(--text-secondary);
+        padding: 8px 0;
+        font-weight: 500;
+      }
+
+      .hero-inner {
+        flex-direction: column;
+        text-align: center;
+        gap: 3rem;
+        padding: 2rem 1.5rem;
+      }
+
+      .hero-text,
+      .hero-visual {
+        flex: none;
+        max-width: 100%;
+      }
+
+      .hero-subtitle {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-cta,
+      .hero-trust {
+        justify-content: center;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps-row {
+        flex-direction: column;
+        gap: 2.5rem;
+        align-items: center;
+      }
+
+      .steps-row::before {
+        display: none;
+      }
+
+      .prism-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .prism-points {
+        text-align: left;
+      }
+
+      .stats-inner {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+      }
+
+      .stat-item::after {
+        display: none !important;
+      }
+
+      .stat-value {
+        font-size: 1.5rem;
+      }
+
+      .cta-section h2 {
+        font-size: 2.2rem;
+      }
+
+      .footer-inner {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .section-title {
+        font-size: 2rem;
+      }
+
+      .metrics-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .chain-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .charts-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media(max-width:480px) {
+      .stats-inner {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .footer-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-input {
+        width: 100%;
+      }
+
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chain-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- LANDING PAGE -->
+  <div id="landingPage">
+
+    <nav class="navbar" id="navbar">
+      <div class="nav-logo">
+        <span class="nav-logo-mc">MC</span>
+        <span class="nav-logo-multi">MultiChain</span>
+        <span class="nav-logo-dash">Dashboard</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Products</a>
+        <a href="#prism">PRISM</a>
+        <a href="#features">AI Advisor</a>
+        <a href="#stats">Chains</a>
+        <a href="#how-it-works">Developers</a>
+      </div>
+      <div class="nav-actions">
+        <button class="btn-login">Log In</button>
+        <button class="btn-get-started"
+          onclick="document.getElementById('ctaSection').scrollIntoView({behavior:'smooth'})">Get Started</button>
+      </div>
+      <button class="nav-hamburger" id="navHamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#features">Products</a>
+      <a href="#prism">PRISM</a>
+      <a href="#features">AI Advisor</a>
+      <a href="#stats">Chains</a>
+      <a href="#how-it-works">Developers</a>
+      <button class="btn-login">Log In</button>
+      <button class="btn-get-started">Get Started</button>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <div class="hero-glow-purple"></div>
+      <div class="hero-glow-cyan"></div>
+      <div class="hero-inner">
+        <div class="hero-text">
+          <div class="live-badge">
+            <span class="live-dot"></span>
+            LIVE &nbsp;·&nbsp; Real blockchain data
+            <span style="opacity:0.7;margin-left:4px" id="liveCounter">1,847</span>
+          </div>
+          <h1>
+            The smarter way<br />
+            to manage crypto<br />
+            <span class="cyan">across every chain.</span>
+          </h1>
+          <p class="hero-subtitle">
+            Unified portfolio intelligence across Ethereum, Polygon, BNB Chain, and Solana. One dashboard. Real-time
+            data. AI-powered insights.
+          </p>
+          <div class="hero-cta">
+            <button class="btn-primary"
+              onclick="document.getElementById('ctaSection').scrollIntoView({behavior:'smooth'})">Start for free
+              →</button>
+            <button class="btn-outline"
+              onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">View
+              Architecture</button>
+          </div>
+          <div class="hero-trust">
+            <span>No signup required</span>
+            <span>Free tier available</span>
+            <span>Live blockchain data</span>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <!-- DECORATIVE CARD — no real data, blurred values -->
+          <div class="dashboard-card">
+            <div class="dc-header">
+              <span class="dc-title">Portfolio Overview</span>
+              <span class="dc-live"><span class="dc-live-dot"></span> Live</span>
+            </div>
+            <div class="dc-value-masked">$███.██M</div>
+            <div class="dc-locked-hint">🔒 Enter wallet to unlock data</div>
+            <!-- Skeleton rows -->
+            <div class="dc-skeleton-row">
+              <span style="display:flex;align-items:center;gap:8px;">
+                <span class="skel skel-dot" style="background:#627EEA;animation:none;"></span>
+                <span class="skel skel-label"></span>
+              </span>
+              <span class="skel skel-val"></span>
+              <span class="skel skel-pct"></span>
+            </div>
+            <div class="dc-skeleton-row">
+              <span style="display:flex;align-items:center;gap:8px;">
+                <span class="skel skel-dot" style="background:#8247E5;animation:none;"></span>
+                <span class="skel skel-label"></span>
+              </span>
+              <span class="skel skel-val"></span>
+              <span class="skel skel-pct"></span>
+            </div>
+            <div class="dc-skeleton-row">
+              <span style="display:flex;align-items:center;gap:8px;">
+                <span class="skel skel-dot" style="background:#F3BA2F;animation:none;"></span>
+                <span class="skel skel-label"></span>
+              </span>
+              <span class="skel skel-val"></span>
+              <span class="skel skel-pct"></span>
+            </div>
+            <div class="dc-skeleton-row">
+              <span style="display:flex;align-items:center;gap:8px;">
+                <span class="skel skel-dot" style="background:#9945FF;animation:none;"></span>
+                <span class="skel skel-label"></span>
+              </span>
+              <span class="skel skel-val"></span>
+              <span class="skel skel-pct"></span>
+            </div>
+            <div class="dc-prism">
+              <div class="dc-prism-header">
+                <span class="dc-prism-label">PRISM Health</span>
+                <span class="dc-prism-score-masked">██/100</span>
+              </div>
+              <div class="dc-prism-bar">
+                <div class="dc-prism-fill" id="heroPrismFill"></div>
+              </div>
+            </div>
+            <button class="dc-unlock-btn"
+              onclick="document.getElementById('ctaSection').scrollIntoView({behavior:'smooth'})">
+              Analyze Your Wallet →
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS BAR -->
+    <section class="stats-bar" id="stats">
+      <div class="stats-inner">
+        <div class="stat-item">
+          <div class="stat-value" data-target="4">0</div>
+          <div class="stat-label">Blockchains</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value cyan">$500M+</div>
+          <div class="stat-label">Portfolio Tracked</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" data-target="2684">0</div>
+          <div class="stat-label">Tokens Detected</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value cyan">LIVE</div>
+          <div class="stat-label">Price Data</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" data-target="78" data-suffix="/100">0</div>
+          <div class="stat-label">PRISM Score</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value cyan">AI</div>
+          <div class="stat-label">Powered Advisor</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features" id="features">
+      <div class="section-label">FEATURES</div>
+      <h2 class="section-title">Everything in one place</h2>
+      <p class="section-subtitle">No more switching between apps.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🔗</span>
+          <div class="feature-title">Multi-Chain Aggregation</div>
+          <p class="feature-desc">Query Ethereum, Polygon, BNB Chain, and Solana simultaneously using async parallel
+            calls.</p>
+          <span class="feature-tag">asyncio.gather()</span>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">💰</span>
+          <div class="feature-title">Live USD Prices</div>
+          <p class="feature-desc">Real-time token prices via CoinGecko API. 30+ token mappings. Auto-updates on search.
+          </p>
+          <span class="feature-tag">CoinGecko API</span>
+        </div>
+        <div class="feature-card highlighted">
+          <span class="feature-icon">🧬</span>
+          <div class="feature-title">PRISM Health Score <span class="feature-new-badge">NEW</span></div>
+          <p class="feature-desc">Original feature — scores your portfolio resilience 0-100. Simulates SOVEREIGN's
+            chain-agnostic state portability model.</p>
+          <span class="feature-tag">Mini-PRISM</span>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚠️</span>
+          <div class="feature-title">Risk Scoring Engine</div>
+          <p class="feature-desc">Detects chain concentration risk. LOW / MEDIUM / HIGH based on diversification across
+            chains.</p>
+          <span class="feature-tag">Python Logic</span>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🧠</span>
+          <div class="feature-title">AI Portfolio Advisor</div>
+          <p class="feature-desc">JULIUS-inspired AutoGen agent with 6 portfolio tools. Ask anything in plain English.
+          </p>
+          <span class="feature-tag">AutoGen + GPT-4o-mini</span>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <div class="feature-title">Interactive Charts</div>
+          <p class="feature-desc">Donut chart for chain distribution. Bar chart for top tokens by value. Sortable token
+            table.</p>
+          <span class="feature-tag">Recharts</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="how-it-works">
+      <div class="how-it-works-inner">
+        <div class="section-label">HOW IT WORKS</div>
+        <h2 class="section-title">Three steps to your full portfolio</h2>
+        <div class="steps-row">
+          <div class="step-item">
+            <div class="step-circle"><span class="step-number">01</span></div>
+            <div class="step-title">Enter Wallet</div>
+            <p class="step-desc">Paste any ETH, Polygon, BSC or Solana address</p>
+          </div>
+          <div class="step-item">
+            <div class="step-circle"><span class="step-number">02</span></div>
+            <div class="step-title">We Fetch Everything</div>
+            <p class="step-desc">4 chains queried in parallel. Tokens, NFTs, transactions.</p>
+          </div>
+          <div class="step-item">
+            <div class="step-circle"><span class="step-number">03</span></div>
+            <div class="step-title">Get Full Intelligence</div>
+            <p class="step-desc">Portfolio value, risk score, PRISM health, AI insights.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRISM -->
+    <section class="prism-section" id="prism">
+      <div class="prism-inner">
+        <div class="prism-text">
+          <div class="section-label" style="text-align:left">THE PRISM CONCEPT</div>
+          <h2>Your financial state<br />shouldn't be trapped<br /><span class="cyan">on one chain.</span></h2>
+          <p>SOVEREIGN's PRISM architecture separates financial state from execution environment. Our Mini-PRISM
+            demonstrates this concept with a real portfolio health scoring system.</p>
+          <div class="prism-points">
+            <div class="prism-point">
+              <div class="prism-check">✓</div><span class="prism-point-text">State aggregated across 4 chains
+                independently</span>
+            </div>
+            <div class="prism-point">
+              <div class="prism-check">✓</div><span class="prism-point-text">Health score measures chain resilience
+                0-100</span>
+            </div>
+            <div class="prism-point">
+              <div class="prism-check">✓</div><span class="prism-point-text">PRISM READY when score ≥ 70</span>
+            </div>
+          </div>
+          <button class="btn-primary"
+            onclick="document.getElementById('ctaSection').scrollIntoView({behavior:'smooth'})">See it in action
+            →</button>
+        </div>
+        <div class="prism-visual">
+          <div class="prism-card" id="prismCard">
+            <div class="prism-card-header">
+              <span class="prism-card-title">PRISM State Health</span>
+              <span class="prism-ready-badge">✓ READY</span>
+            </div>
+            <div class="prism-ring-container">
+              <div class="prism-ring-wrapper">
+                <svg class="prism-ring-svg" viewBox="0 0 90 90">
+                  <circle class="prism-ring-bg" cx="45" cy="45" r="40" />
+                  <circle class="prism-ring-fill" id="prismRingFill" cx="45" cy="45" r="40" />
+                </svg>
+                <div class="prism-ring-text">
+                  <span class="prism-ring-number">78</span>
+                  <span class="prism-ring-of">/100</span>
+                </div>
+              </div>
+            </div>
+            <div class="prism-chain-bars">
+              <div class="prism-chain-bar"><span class="pcb-label">Ethereum</span>
+                <div class="pcb-track">
+                  <div class="pcb-fill" data-width="90" style="background:#627EEA"></div>
+                </div><span class="pcb-score">90</span>
+              </div>
+              <div class="prism-chain-bar"><span class="pcb-label">Polygon</span>
+                <div class="pcb-track">
+                  <div class="pcb-fill" data-width="100" style="background:#8247E5"></div>
+                </div><span class="pcb-score">100</span>
+              </div>
+              <div class="prism-chain-bar"><span class="pcb-label">BNB Chain</span>
+                <div class="pcb-track">
+                  <div class="pcb-fill" data-width="45" style="background:#F3BA2F"></div>
+                </div><span class="pcb-score">45</span>
+              </div>
+              <div class="prism-chain-bar"><span class="pcb-label">Solana</span>
+                <div class="pcb-track">
+                  <div class="pcb-fill" data-width="100" style="background:#9945FF"></div>
+                </div><span class="pcb-score">100</span>
+              </div>
+            </div>
+            <div class="prism-info-box">Score ≥ 70 → PRISM READY — portfolio can survive chain failure</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="ctaSection">
+      <h2>Ready to see your<br /><span class="cyan">full portfolio?</span></h2>
+      <p class="cta-subtitle">Enter any wallet address. Free. No signup.</p>
+      <div class="cta-input-row">
+        <input type="text" class="cta-input" id="walletInput"
+          placeholder="Enter wallet address (ETH, Polygon, BSC, SOL)" spellcheck="false" autocomplete="off" />
+        <button class="btn-analyze" id="btnAnalyze" onclick="analyzeWallet()">Analyze Wallet →</button>
+      </div>
+      <div class="try-chips">
+        <span class="try-label">Try:</span>
+        <button class="try-chip"
+          onclick="fillWallet('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045')">0xd8dA6BF269...6045</button>
+        <button class="try-chip" onclick="fillWallet('vitalik.eth')">vitalik.eth</button>
+      </div>
+      <div class="powered-row">
+        <span class="powered-label">Powered by</span>
+        <span class="powered-item">Moralis</span><span class="powered-dot">·</span>
+        <span class="powered-item">Helius</span><span class="powered-dot">·</span>
+        <span class="powered-item">CoinGecko</span><span class="powered-dot">·</span>
+        <span class="powered-item">AutoGen</span>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="nav-logo"><span class="nav-logo-mc">MC</span><span class="nav-logo-multi">MultiChain</span><span
+              class="nav-logo-dash">Dashboard</span></div>
+          <p>Mini-PRISM proof of concept inspired by SOVEREIGN architecture.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4><a href="#features">Features</a><a href="#prism">PRISM Score</a><a href="#features">AI
+            Advisor</a><a href="#stats">Chains</a>
+        </div>
+        <div class="footer-col">
+          <h4>Developers</h4><a href="#">Documentation</a><a href="#">API Reference</a><a href="#">GitHub</a><a
+            href="#">README</a>
+        </div>
+        <div class="footer-col">
+          <h4>Built With</h4><a href="#">FastAPI</a><a href="#">React</a><a href="#">AutoGen</a><a href="#">Moralis</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 MultiChain Dashboard · MIT License · Built for SOVEREIGN internship evaluation</p>
+      </div>
+    </footer>
+
+  </div><!-- /landingPage -->
+
+  <!-- DASHBOARD APP — shown after wallet entry -->
+  <div class="app-shell" id="appShell">
+    <div class="app-topbar">
+      <div class="app-logo">
+        <div class="app-logo-icon">MC</div>
+        <div>
+          <div class="app-logo-text">MultiChain <span>Dashboard</span></div>
+          <span class="app-logo-sub">Unified Portfolio Intelligence</span>
+        </div>
+      </div>
+      <div class="app-status">
+        <span class="app-status-dot"></span>
+        API Online
+      </div>
+    </div>
+    <div class="app-body">
+      <!-- Search -->
+      <div class="search-box">
+        <h3>Search Wallet</h3>
+        <div class="search-row">
+          <input type="text" class="search-input" id="appWalletInput" placeholder="Enter wallet address"
+            spellcheck="false" autocomplete="off" />
+          <button class="btn-search" onclick="searchWallet()">🔍 Search</button>
+        </div>
+        <div class="search-hint">Supports: Ethereum • Polygon • BNB Chain • Solana</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+        <div class="tab" onclick="switchTab('tokens',this)">Tokens <span class="tab-badge">2684</span></div>
+        <div class="tab" onclick="switchTab('nfts',this)">NFTs <span class="tab-badge pink">20</span></div>
+        <div class="tab" onclick="switchTab('transactions',this)">Transactions <span class="tab-badge">10</span></div>
+        <div class="tab" onclick="switchTab('advisor',this)">🧠 AI Advisor</div>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div class="tab-content active" id="tab-overview">
+        <div class="overview-header">
+          <h2 class="overview-title">Portfolio Overview</h2>
+          <span class="wallet-badge" id="walletBadge">0xd8dA...6045</span>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card highlight">
+            <div class="metric-label">Total Value</div>
+            <div class="metric-value">$500.14M</div>
+            <div class="metric-sub">Across all chains</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Tokens Found</div>
+            <div class="metric-value">2684</div>
+            <div class="metric-sub">Unique assets</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">NFTs Found</div>
+            <div class="metric-value">20</div>
+            <div class="metric-sub">Collectibles</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Active Chains</div>
+            <div class="metric-value">3</div>
+            <div class="metric-sub">Networks</div>
+          </div>
+        </div>
+
+        <div class="risk-bar">
+          <div class="risk-label">Risk Assessment <span>Moderate diversification across chains.</span></div>
+          <div class="risk-badge">MEDIUM RISK</div>
+        </div>
+
+        <div class="mini-prism-note">
+          <strong>Mini-PRISM Demo:</strong> This dashboard aggregates your financial state independently of any single
+          chain — mirroring SOVEREIGN's state-execution separation architecture. Assets tracked across <strong>3
+            execution environments</strong>.
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <h4>Chain Distribution</h4>
+            <div class="donut-wrap">
+              <svg class="donut-svg" viewBox="0 0 160 160" id="donutSvg">
+                <circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="28" />
+                <!-- ETH 0% Polygon 0% BNB 100% -->
+                <circle cx="80" cy="80" r="60" fill="none" stroke="#F3BA2F" stroke-width="28" stroke-dasharray="377 0"
+                  stroke-dashoffset="94.25" transform="rotate(-90 80 80)" />
+              </svg>
+              <div class="donut-legend">
+                <div class="donut-leg-item"><span class="donut-leg-dot" style="background:#627EEA"></span>Ethereum 0.0%
+                </div>
+                <div class="donut-leg-item"><span class="donut-leg-dot" style="background:#8247E5"></span>Polygon 0.0%
+                </div>
+                <div class="donut-leg-item"><span class="donut-leg-dot" style="background:#F3BA2F"></span>BNB Chain
+                  100.0%</div>
+              </div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h4>Top Tokens by Value <span style="font-size:11px;color:rgba(255,255,255,0.3);float:right">USD
+                Value</span></h4>
+            <div class="bar-chart" id="tokenBars">
+              <!-- filled by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- PRISM Section -->
+        <div class="prism-section-app">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <h4>PRISM State Health</h4>
+              <p class="prism-sub">Chain-agnostic portfolio resilience score</p>
+            </div>
+            <span class="prism-ready-pill">✓ PRISM READY</span>
+          </div>
+          <div class="prism-top-row">
+            <div class="prism-circle-wrap">
+              <svg class="prism-circle-svg" viewBox="0 0 90 90" style="transform:rotate(-90deg)">
+                <circle class="prism-circle-bg" cx="45" cy="45" r="40" />
+                <circle class="prism-circle-fill" id="appPrismRing" cx="45" cy="45" r="40" />
+              </svg>
+              <div
+                style="text-align:center;margin-top:-116px;height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span class="prism-circle-text">78</span>
+                <span class="prism-circle-sub">/100</span>
+              </div>
+              <div style="margin-top:30px;">
+                <span class="prism-ready-pill">READY</span>
+              </div>
+            </div>
+            <div class="prism-score-desc" style="flex:1">
+              <h5>Overall Resilience Score</h5>
+              <p>Consider rebalancing to reduce single-chain dependency.</p>
+              <p class="note">Higher scores indicate your portfolio can migrate across chains with minimal disruption
+                under PRISM architecture.</p>
+            </div>
+          </div>
+          <div class="chain-health-label">PER-CHAIN HEALTH</div>
+          <div class="chain-bar-row"><span class="chain-bar-name">Ethereum</span>
+            <div class="chain-bar-track">
+              <div class="chain-bar-fill" data-w="90" style="background:#627EEA"></div>
+            </div><span class="chain-bar-score">90</span>
+          </div>
+          <div class="chain-bar-row"><span class="chain-bar-name">Polygon</span>
+            <div class="chain-bar-track">
+              <div class="chain-bar-fill" data-w="100" style="background:#8247E5"></div>
+            </div><span class="chain-bar-score">100</span>
+          </div>
+          <div class="chain-bar-row"><span class="chain-bar-name">BNB Chain</span>
+            <div class="chain-bar-track">
+              <div class="chain-bar-fill" data-w="45" style="background:#F3BA2F"></div>
+            </div><span class="chain-bar-score">45</span>
+          </div>
+          <div class="chain-bar-row"><span class="chain-bar-name">Solana</span>
+            <div class="chain-bar-track">
+              <div class="chain-bar-fill" data-w="100" style="background:#9945FF"></div>
+            </div><span class="chain-bar-score">100</span>
+          </div>
+          <div class="prism-arch-note"><strong>PRISM Architecture:</strong> In a full SOVEREIGN deployment, this score
+            drives automatic execution routing — portfolios scoring below 70 trigger proactive state migration to
+            healthier chains, ensuring your financial state survives any single-chain failure.</div>
+        </div>
+
+        <!-- Chain Breakdown -->
+        <h3 style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:1rem;">Chain Breakdown</h3>
+        <div class="chain-grid">
+          <div class="chain-card">
+            <div class="chain-card-top">
+              <div class="chain-icon" style="background:#627EEA">Ξ</div>
+              <span class="chain-pct-badge">0.0%</span>
+            </div>
+            <div class="chain-name">Ethereum</div>
+            <div class="chain-val">$17,040.27</div>
+            <div class="chain-bar-mini">
+              <div class="chain-bar-mini-fill" style="width:0%;background:#627EEA"></div>
+            </div>
+            <div class="chain-status active">Active</div>
+          </div>
+          <div class="chain-card">
+            <div class="chain-card-top">
+              <div class="chain-icon" style="background:#8247E5">⬡</div>
+              <span class="chain-pct-badge">0.0%</span>
+            </div>
+            <div class="chain-name">Polygon</div>
+            <div class="chain-val">$6,724.22</div>
+            <div class="chain-bar-mini">
+              <div class="chain-bar-mini-fill" style="width:0%;background:#8247E5"></div>
+            </div>
+            <div class="chain-status active">Active</div>
+          </div>
+          <div class="chain-card">
+            <div class="chain-card-top">
+              <div class="chain-icon" style="background:#F3BA2F">B</div>
+              <span class="chain-pct-badge">100.0%</span>
+            </div>
+            <div class="chain-name">BNB Chain</div>
+            <div class="chain-val">$500.11M</div>
+            <div class="chain-bar-mini">
+              <div class="chain-bar-mini-fill" style="width:100%;background:#F3BA2F"></div>
+            </div>
+            <div class="chain-status active">Active</div>
+          </div>
+          <div class="chain-card">
+            <div class="chain-card-top">
+              <div class="chain-icon" style="background:#9945FF">◎</div>
+              <span class="chain-pct-badge">—</span>
+            </div>
+            <div class="chain-name">Solana</div>
+            <div class="chain-val dim">$0.00</div>
+            <div class="chain-bar-mini">
+              <div class="chain-bar-mini-fill" style="width:0%;background:#9945FF"></div>
+            </div>
+            <div class="chain-status inactive">No assets</div>
+          </div>
+        </div>
+      </div><!-- /tab-overview -->
+
+      <!-- TOKENS TAB -->
+      <div class="tab-content" id="tab-tokens">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+          <h2 style="font-size:1.2rem;font-weight:700;color:#fff;">Tokens <span id="tokenCountBadge" style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.4);"></span></h2>
+          <div style="display:flex;gap:8px;">
+            <input id="tokenSearch" type="text" placeholder="Filter tokens..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 14px;color:#fff;font-size:13px;font-family:var(--mono);outline:none;" oninput="filterTokens()" />
+            <select id="tokenSort" onchange="sortTokens()" style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 12px;color:rgba(255,255,255,0.6);font-size:13px;outline:none;">
+              <option value="value">Sort: Value ↓</option>
+              <option value="name">Sort: Name A-Z</option>
+              <option value="chain">Sort: Chain</option>
+            </select>
+          </div>
+        </div>
+        <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.08);">
+                <th style="padding:12px 16px;text-align:left;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-size:11px;">Token</th>
+                <th style="padding:12px 16px;text-align:left;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-size:11px;">Chain</th>
+                <th style="padding:12px 16px;text-align:right;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-size:11px;">Amount</th>
+                <th style="padding:12px 16px;text-align:right;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-size:11px;">Price</th>
+                <th style="padding:12px 16px;text-align:right;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-size:11px;">Value (USD)</th>
+              </tr>
+            </thead>
+            <tbody id="tokenTableBody">
+              <tr><td colspan="5" style="padding:3rem;text-align:center;color:rgba(255,255,255,0.2);">Loading tokens…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NFTS TAB -->
+      <div class="tab-content" id="tab-nfts">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+          <h2 style="font-size:1.2rem;font-weight:700;color:#fff;">NFTs <span id="nftCountBadge" style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.4);"></span></h2>
+        </div>
+        <div id="nftGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;">
+          <div style="padding:3rem;text-align:center;color:rgba(255,255,255,0.2);grid-column:1/-1;">Loading NFTs…</div>
+        </div>
+      </div>
+
+      <!-- TRANSACTIONS TAB -->
+      <div class="tab-content" id="tab-transactions">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+          <h2 style="font-size:1.2rem;font-weight:700;color:#fff;">Recent Transactions <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.4);">Ethereum</span></h2>
+        </div>
+        <div id="txList" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="padding:3rem;text-align:center;color:rgba(255,255,255,0.2);">Loading transactions…</div>
+        </div>
+      </div>
+
+      <!-- AI ADVISOR TAB -->
+      <div class="tab-content" id="tab-advisor">
+        <div style="max-width:760px;margin:0 auto;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;">
+            <div style="width:40px;height:40px;background:linear-gradient(135deg,#5B8FFF,#8247E5);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">🧠</div>
+            <div>
+              <div style="font-size:1rem;font-weight:700;color:#fff;">AI Portfolio Advisor</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.35);">Powered by AutoGen + GPT-4o-mini · Rule-based fallback available</div>
+            </div>
+            <span id="aiReadyBadge" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:100px;background:rgba(0,179,134,0.15);color:#00B386;border:1px solid rgba(0,179,134,0.3);display:none;">AI READY</span>
+          </div>
+          <div id="chatMessages" style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:1.5rem;min-height:320px;max-height:460px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;margin-bottom:1rem;">
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div style="width:28px;height:28px;background:linear-gradient(135deg,#5B8FFF,#8247E5);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🧠</div>
+              <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px 14px;font-size:14px;color:rgba(255,255,255,0.8);line-height:1.6;max-width:90%;">
+                Hello! I'm your AI portfolio advisor. I can help you analyze your portfolio, explain the PRISM score, assess risks, and suggest rebalancing strategies. What would you like to know?
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+            <button class="ai-chip" onclick="sendAIMessage('What is my risk score?')">What is my risk score?</button>
+            <button class="ai-chip" onclick="sendAIMessage('Explain my PRISM health score')">Explain PRISM score</button>
+            <button class="ai-chip" onclick="sendAIMessage('How should I rebalance my portfolio?')">Rebalancing advice</button>
+            <button class="ai-chip" onclick="sendAIMessage('What is my total portfolio value?')">Portfolio value</button>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input id="aiInput" type="text" placeholder="Ask anything about your portfolio..." style="flex:1;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:12px 16px;color:#fff;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s;" onkeydown="if(event.key==='Enter')sendAIMessage()" onfocus="this.style.borderColor='#5B8FFF'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'" />
+            <button onclick="sendAIMessage()" style="background:#5B8FFF;color:#fff;font-weight:700;padding:12px 20px;border-radius:8px;font-size:14px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='#1656C6'" onmouseout="this.style.background='#5B8FFF'">Send →</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /app-body -->
+  </div><!-- /appShell -->
+
+  <style>
+    .ai-chip {
+      background: rgba(91,143,255,0.08);
+      border: 1px solid rgba(91,143,255,0.25);
+      color: #5B8FFF;
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .ai-chip:hover { background: rgba(91,143,255,0.18); }
+    .tx-row {
+      background: #0F1A2E;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .tx-row:hover { border-color: rgba(91,143,255,0.3); }
+    .nft-card {
+      background: #0F1A2E;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .nft-card:hover { border-color: rgba(91,143,255,0.35); transform: translateY(-3px); }
+    .nft-img {
+      width: 100%; height: 150px; object-fit: cover;
+      background: linear-gradient(135deg,#1a2744,#0d1a30);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem;
+    }
+    .token-row:hover td { background: rgba(255,255,255,0.02); }
+    .chain-pill {
+      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .chat-ai-msg { display: flex; gap: 10px; align-items: flex-start; }
+    .chat-user-msg { display: flex; gap: 10px; align-items: flex-start; flex-direction: row-reverse; }
+    .chat-bubble-ai {
+      background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px;
+      font-size: 14px; color: rgba(255,255,255,0.82); line-height: 1.7; max-width: 88%;
+      white-space: pre-wrap;
+    }
+    .chat-bubble-user {
+      background: rgba(91,143,255,0.15); border-radius: 10px; padding: 12px 14px;
+      font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.6; max-width: 88%;
+    }
+    .chat-avatar-ai {
+      width: 28px; height: 28px; background: linear-gradient(135deg,#5B8FFF,#8247E5);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .chat-avatar-user {
+      width: 28px; height: 28px; background: rgba(255,255,255,0.1);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0; color: rgba(255,255,255,0.6);
+    }
+    .typing-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.4); animation: blink 1.2s ease-in-out infinite; margin: 0 2px; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+  </style>
+  <script>
+    /* PARTICLE CANVAS */
+    (function () {
+      var canvas = document.getElementById('particleCanvas'), ctx = canvas.getContext('2d'), w, h, particles = [], mouse = { x: null, y: null };
+      var COLORS = ['#1656C6', '#5B8FFF', '#8247E5'], COUNT = 60, MAX_DIST = 140;
+      function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+      resize(); window.addEventListener('resize', resize);
+      window.addEventListener('mousemove', function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+      window.addEventListener('mouseleave', function () { mouse.x = null; mouse.y = null; });
+      function Particle() { this.x = Math.random() * w; this.y = Math.random() * h; this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5; this.r = Math.random() * 1.8 + 0.5; this.color = COLORS[Math.floor(Math.random() * COLORS.length)]; this.alpha = Math.random() * 0.4 + 0.15; }
+      for (var i = 0; i < COUNT; i++)particles.push(new Particle());
+      function animate() {
+        ctx.clearRect(0, 0, w, h);
+        for (var i = 0; i < particles.length; i++) {
+          var p = particles[i];
+          if (mouse.x !== null) { var dx = p.x - mouse.x, dy = p.y - mouse.y, dist = Math.sqrt(dx * dx + dy * dy); if (dist < 120) { var force = (120 - dist) / 120 * 0.025; p.vx += dx * force; p.vy += dy * force; } }
+          p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.vy *= 0.99;
+          if (p.x < 0 || p.x > w) p.vx *= -1; if (p.y < 0 || p.y > h) p.vy *= -1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha; ctx.fill();
+          for (var j = i + 1; j < particles.length; j++) { var p2 = particles[j], ddx = p.x - p2.x, ddy = p.y - p2.y, dd = Math.sqrt(ddx * ddx + ddy * ddy); if (dd < MAX_DIST) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.strokeStyle = 'rgba(22,86,198,0.12)'; ctx.globalAlpha = 1 - dd / MAX_DIST; ctx.lineWidth = 0.5; ctx.stroke(); } }
+        }
+        ctx.globalAlpha = 1; requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+
+    /* MOBILE MENU */
+    document.getElementById('navHamburger').addEventListener('click', function () { document.getElementById('mobileMenu').classList.toggle('open'); });
+    document.getElementById('mobileMenu').querySelectorAll('a').forEach(function (a) { a.addEventListener('click', function () { document.getElementById('mobileMenu').classList.remove('open'); }); });
+
+    /* SCROLL ANIMATIONS */
+    (function () {
+      var featureCards = document.querySelectorAll('.feature-card');
+      var obs = new IntersectionObserver(function (entries) { entries.forEach(function (e) { if (e.isIntersecting) { var idx = Array.from(featureCards).indexOf(e.target); setTimeout(function () { e.target.classList.add('visible'); }, idx * 100); obs.unobserve(e.target); } }); }, { threshold: 0.15 });
+      featureCards.forEach(function (c) { obs.observe(c); });
+
+      var statValues = document.querySelectorAll('.stat-value[data-target]');
+      var sObs = new IntersectionObserver(function (entries) { entries.forEach(function (e) { if (e.isIntersecting) { var el = e.target, target = parseInt(el.getAttribute('data-target')), suffix = el.getAttribute('data-suffix') || ''; animateCount(el, 0, target, 1200, suffix); sObs.unobserve(el); } }); }, { threshold: 0.5 });
+      statValues.forEach(function (s) { sObs.observe(s); });
+
+      function animateCount(el, start, end, dur, suffix) { var st = null; function step(ts) { if (!st) st = ts; var p = Math.min((ts - st) / dur, 1), e = 1 - Math.pow(1 - p, 3), cur = Math.round(start + (end - start) * e); el.textContent = cur.toLocaleString() + suffix; if (p < 1) requestAnimationFrame(step); } requestAnimationFrame(step); }
+
+      setTimeout(function () { var f = document.getElementById('heroPrismFill'); if (f) f.style.width = '30%'; }, 800);
+
+      var prismCard = document.getElementById('prismCard');
+      var pObs = new IntersectionObserver(function (entries) { entries.forEach(function (e) { if (e.isIntersecting) { var ring = document.getElementById('prismRingFill'); if (ring) ring.style.strokeDashoffset = '55.264'; prismCard.querySelectorAll('.pcb-fill').forEach(function (f, idx) { setTimeout(function () { f.style.width = f.getAttribute('data-width') + '%'; }, 200 + idx * 150); }); pObs.unobserve(prismCard); } }); }, { threshold: 0.3 });
+      if (prismCard) pObs.observe(prismCard);
+    })();
+
+    /* LIVE COUNTER */
+    (function () { var c = document.getElementById('liveCounter'), v = 1847; function inc() { v += Math.floor(Math.random() * 3) + 1; c.textContent = v.toLocaleString(); setTimeout(inc, Math.floor(Math.random() * 5000) + 3000); } setTimeout(inc, 3000); })();
+
+    /* =====================================================
+       BACKEND CONFIG
+       ===================================================== */
+    var API_BASE = 'http://localhost:8000';
+    var CHAIN_COLORS = { ethereum: '#627EEA', polygon: '#8247E5', bsc: '#F3BA2F', solana: '#9945FF' };
+    var CHAIN_LABELS = { ethereum: 'Ethereum', polygon: 'Polygon', bsc: 'BNB Chain', solana: 'Solana' };
+
+    /* State */
+    var _currentWallet = '';
+    var _portfolioData = null;
+    var _allTokens = [];
+    var _aiHistory = [];
+
+    /* =====================================================
+       WALLET FUNCTIONS (Landing)
+       ===================================================== */
+    function fillWallet(addr) { document.getElementById('walletInput').value = addr; }
+
+    function analyzeWallet() {
+      var input = document.getElementById('walletInput');
+      var wallet = input.value.trim();
+      if (!wallet) { input.style.borderColor = '#E84545'; setTimeout(function () { input.style.borderColor = ''; }, 1500); return; }
+      launchDashboard(wallet);
+    }
+
+    document.getElementById('walletInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') analyzeWallet(); });
+
+    /* =====================================================
+       LAUNCH DASHBOARD
+       ===================================================== */
+    function launchDashboard(wallet) {
+      _currentWallet = wallet;
+      _aiHistory = [];
+      document.getElementById('landingPage').style.display = 'none';
+      document.getElementById('particleCanvas').style.display = 'none';
+      var app = document.getElementById('appShell');
+      app.classList.add('active');
+      var short = wallet.length > 12 ? wallet.slice(0, 6) + '...' + wallet.slice(-4) : wallet;
+      document.getElementById('walletBadge').textContent = short;
+      document.getElementById('appWalletInput').value = wallet;
+      window.scrollTo(0, 0);
+      fetchPortfolio(wallet);
+      fetchTransactions(wallet);
+    }
+
+    /* =====================================================
+       FETCH PORTFOLIO  →  /portfolio/{wallet}
+       ===================================================== */
+    function fetchPortfolio(wallet) {
+      setLoadingState(true);
+      fetch(API_BASE + '/portfolio/' + encodeURIComponent(wallet))
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          _portfolioData = data;
+          _allTokens = data.tokens || [];
+          renderOverview(data);
+          renderTokens(_allTokens);
+          renderNFTs(data.nfts || []);
+          setLoadingState(false);
+        })
+        .catch(function (err) {
+          setLoadingState(false);
+          showApiError('Portfolio fetch failed: ' + err.message);
+        });
+    }
+
+    /* =====================================================
+       FETCH TRANSACTIONS  →  /transactions/{wallet}
+       ===================================================== */
+    function fetchTransactions(wallet) {
+      document.getElementById('txList').innerHTML = '<div style="padding:2rem;text-align:center;color:rgba(255,255,255,0.25);">Loading transactions…</div>';
+      fetch(API_BASE + '/transactions/' + encodeURIComponent(wallet))
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          renderTransactions(data.transactions || []);
+        })
+        .catch(function (err) {
+          document.getElementById('txList').innerHTML = '<div style="padding:2rem;text-align:center;color:#e84545;">⚠️ ' + err.message + '</div>';
+        });
+    }
+
+    /* =====================================================
+       RENDER OVERVIEW
+       ===================================================== */
+    function renderOverview(data) {
+      var total = data.total_value_usd || 0;
+      var risk = data.risk_score || 'UNKNOWN';
+      var prism = data.prism_health || {};
+      var prismScore = prism.overall_score || 0;
+      var tokens = data.tokens || [];
+      var nfts = data.nfts || [];
+      var chains = data.chain_breakdown || [];
+      var activeChains = chains.filter(function (c) { return c.value_usd > 0; }).length;
+
+      /* Update metrics */
+      document.querySelector('.metric-value').textContent = formatUSD(total);
+      var metricCells = document.querySelectorAll('.metric-value');
+      if (metricCells[1]) metricCells[1].textContent = tokens.length.toLocaleString();
+      if (metricCells[2]) metricCells[2].textContent = nfts.length;
+      if (metricCells[3]) metricCells[3].textContent = activeChains;
+
+      /* Update tab badges */
+      document.querySelector('.tab-badge').textContent = tokens.length;
+      var badges = document.querySelectorAll('.tab-badge');
+      if (badges[0]) badges[0].textContent = tokens.length;
+      if (badges[1]) badges[1].textContent = nfts.length;
+
+      /* Risk */
+      var riskBadge = document.querySelector('.risk-badge');
+      if (riskBadge) {
+        riskBadge.textContent = risk + ' RISK';
+        riskBadge.style.background = risk === 'LOW' ? 'rgba(0,179,134,0.15)' : risk === 'HIGH' ? 'rgba(232,69,69,0.15)' : 'rgba(249,168,0,0.15)';
+        riskBadge.style.color = risk === 'LOW' ? '#00B386' : risk === 'HIGH' ? '#E84545' : '#F9A800';
+        riskBadge.style.borderColor = risk === 'LOW' ? 'rgba(0,179,134,0.3)' : risk === 'HIGH' ? 'rgba(232,69,69,0.3)' : 'rgba(249,168,0,0.3)';
+      }
+
+      /* PRISM ring */
+      setTimeout(function () {
+        var ring = document.getElementById('appPrismRing');
+        if (ring) ring.style.strokeDashoffset = String(251.2 * (1 - prismScore / 100));
+        document.querySelector('.prism-circle-text').textContent = prismScore;
+        var prismBadge = document.querySelector('.prism-ready-pill');
+        if (prismBadge) {
+          prismBadge.textContent = prismScore >= 70 ? '✓ PRISM READY' : '✗ NOT READY';
+          prismBadge.style.color = prismScore >= 70 ? '#00B386' : '#E84545';
+        }
+      }, 400);
+
+      /* Chain breakdown cards */
+      var chainDefs = [
+        { key: 'ethereum', icon: 'Ξ' },
+        { key: 'polygon',  icon: '⬡' },
+        { key: 'bsc',      icon: 'B' },
+        { key: 'solana',   icon: '◎' },
+      ];
+      var chainGrid = document.querySelector('.chain-grid');
+      if (chainGrid) {
+        chainGrid.innerHTML = '';
+        chainDefs.forEach(function (def) {
+          var entry = chains.find(function (c) { return c.chain === def.key; }) || { value_usd: 0, percentage: 0 };
+          var active = entry.value_usd > 0;
+          var pct = entry.percentage || 0;
+          var label = CHAIN_LABELS[def.key] || def.key;
+          var color = CHAIN_COLORS[def.key] || '#888';
+          chainGrid.innerHTML += '<div class="chain-card">' +
+            '<div class="chain-card-top">' +
+              '<div class="chain-icon" style="background:' + color + '">' + def.icon + '</div>' +
+              '<span class="chain-pct-badge">' + (active ? pct.toFixed(1) + '%' : '—') + '</span>' +
+            '</div>' +
+            '<div class="chain-name">' + label + '</div>' +
+            '<div class="chain-val' + (active ? '' : ' dim') + '">' + formatUSD(entry.value_usd) + '</div>' +
+            '<div class="chain-bar-mini"><div class="chain-bar-mini-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+            '<div class="chain-status ' + (active ? 'active' : 'inactive') + '">' + (active ? 'Active' : 'No assets') + '</div>' +
+          '</div>';
+        });
+      }
+
+      /* Per-chain health bars */
+      var chainHealthDefs = [
+        { key: 'ethereum', label: 'Ethereum' },
+        { key: 'polygon',  label: 'Polygon'  },
+        { key: 'bsc',      label: 'BNB Chain'},
+        { key: 'solana',   label: 'Solana'   },
+      ];
+      var chainBars = document.querySelectorAll('.chain-bar-fill');
+      var chainScores = prism.chain_scores || {};
+      chainBars.forEach(function (bar, i) {
+        var def = chainHealthDefs[i];
+        if (!def) return;
+        var score = chainScores[def.key] !== undefined ? chainScores[def.key] : (i === 2 ? 45 : 90);
+        setTimeout(function () { bar.style.width = score + '%'; }, 300 + i * 150);
+        var scoreEl = bar.closest('.chain-bar-row');
+        if (scoreEl) { var s = scoreEl.querySelector('.chain-bar-score'); if (s) s.textContent = score; }
+      });
+
+      /* Donut chart */
+      buildDonut(chains);
+
+      /* Top token bar chart */
+      buildTokenBars(tokens, total);
+    }
+
+    /* =====================================================
+       DONUT CHART
+       ===================================================== */
+    function buildDonut(chains) {
+      var svg = document.getElementById('donutSvg');
+      var legend = document.querySelector('.donut-legend');
+      if (!svg) return;
+      var CIRC = 2 * Math.PI * 60; // r=60
+      var sorted = chains.slice().sort(function (a, b) { return b.value_usd - a.value_usd; });
+      var offset = CIRC * 0.25; // start top
+      var pathHtml = '<circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="28" />';
+      var legHtml = '';
+      sorted.forEach(function (c) {
+        var pct = c.percentage / 100;
+        if (pct <= 0) return;
+        var color = CHAIN_COLORS[c.chain] || '#888';
+        var len = CIRC * pct;
+        pathHtml += '<circle cx="80" cy="80" r="60" fill="none" stroke="' + color + '" stroke-width="28" stroke-dasharray="' + len + ' ' + (CIRC - len) + '" stroke-dashoffset="' + (-offset + CIRC * 0.25) + '" transform="rotate(-90 80 80)" />';
+        offset -= len;
+        legHtml += '<div class="donut-leg-item"><span class="donut-leg-dot" style="background:' + color + '"></span>' + (CHAIN_LABELS[c.chain] || c.chain) + ' ' + c.percentage.toFixed(1) + '%</div>';
+      });
+      svg.innerHTML = pathHtml;
+      if (legend) legend.innerHTML = legHtml;
+    }
+
+    /* =====================================================
+       TOKEN BAR CHART (overview)
+       ===================================================== */
+    function buildTokenBars(tokens, total) {
+      var container = document.getElementById('tokenBars');
+      if (!container) return;
+      var sorted = tokens.slice().sort(function (a, b) { return (b.usd_value || 0) - (a.usd_value || 0); }).slice(0, 10);
+      var maxVal = sorted[0] ? sorted[0].usd_value || 1 : 1;
+      container.innerHTML = '';
+      sorted.forEach(function (t) {
+        var pct = Math.max((t.usd_value / maxVal) * 100, 2);
+        var color = CHAIN_COLORS[t.chain] || '#5B8FFF';
+        var row = document.createElement('div'); row.className = 'bar-row';
+        row.innerHTML = '<span class="bar-label" style="font-family:var(--mono);">' + (t.symbol || '?').slice(0,6) + '</span>' +
+          '<div class="bar-track"><div class="bar-fill" style="background:' + color + ';width:' + pct + '%"></div></div>' +
+          '<span class="bar-val">' + formatUSD(t.usd_value || 0) + '</span>';
+        container.appendChild(row);
+      });
+    }
+
+    /* =====================================================
+       RENDER TOKENS TABLE
+       ===================================================== */
+    function renderTokens(tokens) {
+      document.getElementById('tokenCountBadge').textContent = '(' + tokens.length.toLocaleString() + ' assets)';
+      _allTokens = tokens;
+      sortAndDisplayTokens();
+    }
+
+    function sortAndDisplayTokens() {
+      var sortBy = (document.getElementById('tokenSort') || {}).value || 'value';
+      var filterVal = ((document.getElementById('tokenSearch') || {}).value || '').toLowerCase();
+      var list = _allTokens.filter(function (t) {
+        var sym = (t.symbol || '').toLowerCase();
+        var name = (t.name || '').toLowerCase();
+        return sym.includes(filterVal) || name.includes(filterVal);
+      });
+      if (sortBy === 'value') list.sort(function (a, b) { return (b.usd_value || 0) - (a.usd_value || 0); });
+      else if (sortBy === 'name') list.sort(function (a, b) { return (a.symbol || '').localeCompare(b.symbol || ''); });
+      else if (sortBy === 'chain') list.sort(function (a, b) { return (a.chain || '').localeCompare(b.chain || ''); });
+      var tbody = document.getElementById('tokenTableBody');
+      if (!tbody) return;
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:2rem;text-align:center;color:rgba(255,255,255,0.2);">No tokens found.</td></tr>'; return; }
+      tbody.innerHTML = list.map(function (t, i) {
+        var color = CHAIN_COLORS[t.chain] || '#888';
+        var chainLabel = CHAIN_LABELS[t.chain] || t.chain || '?';
+        return '<tr class="token-row" style="border-bottom:1px solid rgba(255,255,255,0.05);cursor:default;">' +
+          '<td style="padding:11px 16px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:28px;height:28px;border-radius:50%;background:' + color + '22;border:1px solid ' + color + '44;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:' + color + ';flex-shrink:0;">' + (t.symbol || '?').slice(0,3) + '</div><div><div style="font-weight:600;color:#fff;font-size:13px;">' + escHtml(t.symbol || '') + '</div><div style="font-size:11px;color:rgba(255,255,255,0.3);">' + escHtml(t.name || '') + '</div></div></div></td>' +
+          '<td style="padding:11px 16px;"><span class="chain-pill" style="background:' + color + '22;color:' + color + ';">' + chainLabel + '</span></td>' +
+          '<td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-size:13px;color:rgba(255,255,255,0.7);">' + formatAmt(t.amount) + '</td>' +
+          '<td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-size:13px;color:rgba(255,255,255,0.5);">' + (t.usd_price ? '$' + t.usd_price.toLocaleString(undefined,{maximumFractionDigits:4}) : '—') + '</td>' +
+          '<td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-size:13px;font-weight:700;color:' + (t.usd_value > 0 ? '#fff' : 'rgba(255,255,255,0.25)') + ';">' + (t.usd_value > 0 ? formatUSD(t.usd_value) : '$0.00') + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function filterTokens() { sortAndDisplayTokens(); }
+    function sortTokens() { sortAndDisplayTokens(); }
+
+    /* =====================================================
+       RENDER NFTs
+       ===================================================== */
+    function renderNFTs(nfts) {
+      document.getElementById('nftCountBadge').textContent = '(' + nfts.length + ' collectibles)';
+      var grid = document.getElementById('nftGrid');
+      if (!grid) return;
+      if (!nfts.length) {
+        grid.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,0.2);grid-column:1/-1;">No NFTs found for this wallet.</div>';
+        return;
+      }
+      var CHAIN_ICONS = { ethereum: 'Ξ', polygon: '⬡', bsc: 'B', solana: '◎' };
+      grid.innerHTML = nfts.map(function (nft) {
+        var color = CHAIN_COLORS[nft.chain] || '#888';
+        var icon = CHAIN_ICONS[nft.chain] || '?';
+        var imgSrc = nft.image || nft.image_url || (nft.metadata && nft.metadata.image) || nft.collection_logo || '';
+        var name = nft.name || (nft.metadata && nft.metadata.name) || 'Unnamed NFT';
+        var collection = nft.symbol || nft.collection_name || nft.contract_type || 'NFT';
+        return '<div class="nft-card">' +
+          (imgSrc ? '<img src="' + escHtml(imgSrc) + '" alt="' + escHtml(name) + '" style="width:100%;height:150px;object-fit:cover;background:#0d1a30;" onerror="this.outerHTML=\'<div class=nft-img>' + icon + '</div>\'" referrerpolicy="no-referrer" />' : '<div class="nft-img">' + icon + '</div>') +
+          '<div style="padding:12px;">' +
+            '<div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(name) + '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+              '<span style="font-size:11px;color:rgba(255,255,255,0.35);">' + escHtml(collection) + '</span>' +
+              '<span class="chain-pill" style="background:' + color + '22;color:' + color + ';">' + (CHAIN_LABELS[nft.chain] || nft.chain) + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    /* =====================================================
+       RENDER TRANSACTIONS
+       ===================================================== */
+    function renderTransactions(txs) {
+      var badges = document.querySelectorAll('.tab-badge');
+      if (badges[2]) badges[2].textContent = txs.length;
+      
+      var list = document.getElementById('txList');
+      if (!list) return;
+      if (!txs.length) {
+        list.innerHTML = '<div style="padding:2rem;text-align:center;color:rgba(255,255,255,0.2);">No transactions found.</div>';
+        return;
+      }
+      list.innerHTML = txs.map(function (tx) {
+        var isOut = (tx.from || '').toLowerCase() === (_currentWallet || '').toLowerCase();
+        var valEth = tx.value_eth !== undefined ? parseFloat(tx.value_eth).toFixed(4) : '?';
+        var ts = tx.timestamp ? new Date(tx.timestamp).toLocaleString() : '';
+        var short = function (addr) { return addr ? addr.slice(0, 6) + '…' + addr.slice(-4) : '—'; };
+        return '<div class="tx-row">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<div style="width:34px;height:34px;border-radius:8px;background:' + (isOut ? 'rgba(232,69,69,0.15)' : 'rgba(0,179,134,0.15)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (isOut ? '↑' : '↓') + '</div>' +
+            '<div>' +
+              '<div style="font-size:13px;font-weight:600;color:#fff;">' + (isOut ? 'Sent' : 'Received') + ' ' + valEth + ' ETH</div>' +
+              '<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px;font-family:var(--mono);">' + (isOut ? 'To: ' + short(tx.to) : 'From: ' + short(tx.from)) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            (ts ? '<div style="font-size:12px;color:rgba(255,255,255,0.35);">' + ts + '</div>' : '') +
+            '<a href="https://etherscan.io/tx/' + escHtml(tx.hash || '') + '" target="_blank" style="font-size:11px;color:#5B8FFF;font-family:var(--mono);">' + short(tx.hash) + ' ↗</a>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    /* =====================================================
+       AI ADVISOR
+       ===================================================== */
+    function sendAIMessage(preset) {
+      var input = document.getElementById('aiInput');
+      var question = preset || (input ? input.value.trim() : '');
+      if (!question) return;
+      if (input) input.value = '';
+
+      appendChatMsg('user', question);
+      var typingId = appendTyping();
+
+      var body = {
+        question: question,
+        portfolio_data: _portfolioData || {},
+        conversation_history: _aiHistory
+      };
+
+      fetch(API_BASE + '/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (data) {
+          removeTyping(typingId);
+          var msg = data.message || 'No response.';
+          appendChatMsg('ai', msg);
+          _aiHistory.push({ role: 'user', content: question });
+          _aiHistory.push({ role: 'assistant', content: msg });
+          if (_aiHistory.length > 20) _aiHistory = _aiHistory.slice(-20);
+          if (data.ai_ready) {
+            var badge = document.getElementById('aiReadyBadge');
+            if (badge) badge.style.display = 'inline-flex';
+          }
+        })
+        .catch(function (err) {
+          removeTyping(typingId);
+          appendChatMsg('ai', '⚠️ Could not reach the AI backend. Make sure the FastAPI server is running at ' + API_BASE + '.\n\nError: ' + err.message);
+        });
+    }
+
+    function appendChatMsg(role, text) {
+      var box = document.getElementById('chatMessages');
+      if (!box) return;
+      var div = document.createElement('div');
+      div.className = role === 'ai' ? 'chat-ai-msg' : 'chat-user-msg';
+      var avatar = '<div class="' + (role === 'ai' ? 'chat-avatar-ai' : 'chat-avatar-user') + '">' + (role === 'ai' ? '🧠' : '👤') + '</div>';
+      var bubble = '<div class="' + (role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user') + '">' + escHtml(text).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>') + '</div>';
+      div.innerHTML = avatar + bubble;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function appendTyping() {
+      var box = document.getElementById('chatMessages');
+      var id = 'typing-' + Date.now();
+      var div = document.createElement('div');
+      div.className = 'chat-ai-msg'; div.id = id;
+      div.innerHTML = '<div class="chat-avatar-ai">🧠</div><div class="chat-bubble-ai"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return id;
+    }
+
+    function removeTyping(id) {
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    /* =====================================================
+       SEARCH (app bar)
+       ===================================================== */
+    function searchWallet() {
+      var w = document.getElementById('appWalletInput').value.trim();
+      if (!w) return;
+      _currentWallet = w;
+      _aiHistory = [];
+      var short = w.length > 12 ? w.slice(0, 6) + '...' + w.slice(-4) : w;
+      document.getElementById('walletBadge').textContent = short;
+      fetchPortfolio(w);
+      fetchTransactions(w);
+      switchTab('overview', document.querySelector('.tab'));
+    }
+
+    document.getElementById('appWalletInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') searchWallet(); });
+
+    /* =====================================================
+       TABS
+       ===================================================== */
+    function switchTab(name, el) {
+      document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function (t) { t.classList.remove('active'); });
+      if (el) el.classList.add('active');
+      var tabEl = document.getElementById('tab-' + name);
+      if (tabEl) tabEl.classList.add('active');
+    }
+
+    /* =====================================================
+       UTILITY
+       ===================================================== */
+    function formatUSD(val) {
+      if (val === null || val === undefined) return '$0.00';
+      val = parseFloat(val);
+      if (val >= 1e9)  return '$' + (val / 1e9).toFixed(2) + 'B';
+      if (val >= 1e6)  return '$' + (val / 1e6).toFixed(2) + 'M';
+      if (val >= 1e3)  return '$' + val.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      return '$' + val.toFixed(2);
+    }
+
+    function formatAmt(val) {
+      if (!val && val !== 0) return '—';
+      val = parseFloat(val);
+      if (val >= 1e6)  return (val / 1e6).toFixed(2) + 'M';
+      if (val >= 1e3)  return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      if (val >= 1)    return val.toFixed(4);
+      return val.toPrecision(4);
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function setLoadingState(loading) {
+      var topbar = document.querySelector('.app-status');
+      if (topbar) {
+        topbar.innerHTML = loading
+          ? '<span class="app-status-dot" style="background:#F9A800"></span> Fetching…'
+          : '<span class="app-status-dot"></span> API Online';
+      }
+    }
+
+    function showApiError(msg) {
+      var body = document.querySelector('.app-body');
+      if (!body) return;
+      var banner = document.createElement('div');
+      banner.style.cssText = 'background:rgba(232,69,69,0.12);border:1px solid rgba(232,69,69,0.3);border-radius:8px;padding:14px 18px;margin-bottom:1.5rem;color:#E84545;font-size:14px;';
+      banner.textContent = '⚠️ ' + msg + ' — Showing cached data if available.';
+      body.insertBefore(banner, body.firstChild);
+      setTimeout(function () { if (banner.parentNode) banner.remove(); }, 6000);
+    }
+
+    /* =====================================================
+       SMOOTH SCROLL for landing nav
+       ===================================================== */
+    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+      anchor.addEventListener('click', function (e) {
+        var t = this.getAttribute('href');
+        if (t === '#') return;
+        var el = document.querySelector(t);
+        if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+      });
+    });
+
+    /* On page load check for ?wallet= param */
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var w = params.get('wallet');
+      if (w) launchDashboard(w);
+    })();
+  </script>
+</body>
+
+</html>
