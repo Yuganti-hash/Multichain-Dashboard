@@ -128,25 +128,44 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
                 try: metadata = json.loads(metadata)
                 except: metadata = {}
 
+            # Try Moralis pre-cached media items first (most reliable)
+            media_image = ""
+            media_items = item.get("media") or {}
+            if isinstance(media_items, dict):
+                media_collection = media_items.get("media_collection") or {}
+                # Prefer medium size, then low, then high, then original
+                for size_key in ["medium", "low", "high"]:
+                    size_obj = media_collection.get(size_key) or {}
+                    url = size_obj.get("url") or ""
+                    if url and url.startswith("http"):
+                        media_image = url
+                        break
+                if not media_image:
+                    original = media_items.get("original_media_url") or ""
+                    if original and original.startswith("http"):
+                        media_image = original
+
             image = (
+                media_image or
                 norm.get("image") or
                 norm.get("image_url") or
                 metadata.get("image") or
                 metadata.get("image_url") or
-                item.get("token_uri", "")
+                item.get("collection_logo") or ""
             )
 
-            # Convert IPFS to HTTP
+            # Convert IPFS to HTTP via a reliable gateway
             if image and image.startswith("ipfs://"):
-                image = image.replace("ipfs://", "https://cloudflare-ipfs.com/ipfs/")
+                image = image.replace("ipfs://", "https://ipfs.io/ipfs/")
 
             nft_obj = {
-                "token_address": item.get("token_address", ""),
-                "token_id":      item.get("token_id", ""),
-                "name":          norm.get("name") or item.get("name") or "Unknown NFT",
-                "symbol":        item.get("symbol", ""),
-                "image":         image or "",
-                "chain":         "ethereum",
+                "token_address":    item.get("token_address", ""),
+                "token_id":         item.get("token_id", ""),
+                "name":             norm.get("name") or item.get("name") or "Unknown NFT",
+                "symbol":           item.get("symbol", ""),
+                "image":            image or "",
+                "collection_logo":  item.get("collection_logo") or "",
+                "chain":            "ethereum",
             }
             nfts.append(nft_obj)
 
