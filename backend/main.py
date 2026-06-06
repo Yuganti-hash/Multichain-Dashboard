@@ -36,6 +36,7 @@ from chains import ethereum, polygon, bsc, solana
 from utils import prices as prices_util
 from utils import risk as risk_util
 from ai_advisor import ask_advisor, is_advisor_ready
+from state_machine import StateMachine
 
 # (load_dotenv() already called above, before chain imports)
 
@@ -205,6 +206,14 @@ async def get_portfolio(wallet_address: str):
         # PRISM health score — chain-agnostic resilience rating
         prism_health = risk_util.calculate_prism_health_score(chain_breakdown, all_tokens)
 
+        # Build Protocol Resilient Interoperable State Machine
+        sm = StateMachine(
+            wallet=wallet_address,
+            chain_breakdown=chain_breakdown,
+            prism_health=prism_health,
+        )
+        state_machine = sm.to_dict()
+
         # ------------------------------------------------------------------
         # Final response
         # ------------------------------------------------------------------
@@ -217,6 +226,7 @@ async def get_portfolio(wallet_address: str):
             "tokens":          all_tokens,
             "nfts":            all_nfts,
             "prices":          prices,
+            "state_machine":   state_machine,
         }
 
     except HTTPException:

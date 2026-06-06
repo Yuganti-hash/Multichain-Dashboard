@@ -43,3 +43,9 @@ body {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* ── PRISM StateMachine — pulse animation for CRITICAL/AT_RISK state dot ─── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
