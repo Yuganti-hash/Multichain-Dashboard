@@ -2143,6 +2143,7 @@
       transform-style: preserve-3d;
       position: relative;
       overflow: hidden;
+      will-change: auto;
     }
 
     .app-3d-card::before {
@@ -2169,6 +2170,9 @@
       padding: 1.75rem 2rem;
       margin-bottom: 2rem;
       box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+      position: relative;
+      z-index: 10;
+      transform: none !important;
     }
 
     .search-box h3 {
@@ -3446,6 +3450,32 @@
           </div>
         </div>
 
+        <div class="card-scene">
+          <div class="card-3d" data-card data-glow="#00D4FF">
+            <div class="card-glow-spot"
+              style="background:radial-gradient(circle,rgba(0,212,255,.2),transparent)">
+            </div>
+            <div class="feature-icon-wrap"
+              style="background:rgba(0,212,255,.08);color:var(--cyan);
+                     border:1px solid rgba(0,212,255,.2);">
+              <i class="ti ti-circuit-switchboard" aria-hidden="true"></i>
+            </div>
+            <div class="feature-title-row">
+              <span class="feature-title">Protocol State Machine</span>
+              <span class="feature-new-badge">NEW</span>
+            </div>
+            <p class="feature-desc">
+              Tracks portfolio state transitions across chains with automatic
+              migration planning. Simulates SOVEREIGN's resilient execution routing.
+            </p>
+            <span class="feature-tag">
+              <i class="ti ti-topology-star" style="font-size:11px;"
+                 aria-hidden="true"></i>
+              PRISM State Engine
+            </span>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -3670,6 +3700,7 @@
         <div class="tab" onclick="switchTab('transactions',this)">Transactions <span class="tab-badge"
             id="txTabBadge">10</span></div>
         <div class="tab" onclick="switchTab('advisor',this)">🧠 AI Advisor</div>
+        <div class="tab" onclick="switchTab('statemachine',this)">⬡ State Machine</div>
       </div>
 
       <!-- OVERVIEW TAB -->
@@ -3945,6 +3976,14 @@
           </div>
         </div>
       </div>
+
+      <div class="tab-content" id="tab-statemachine">
+        <div id="smContainer">
+          <div style="padding:3rem;text-align:center;color:var(--text-muted);">
+            Search a wallet to view the Protocol State Machine
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4060,10 +4099,12 @@
           var rect = card.getBoundingClientRect();
           var fx = (e.clientX - rect.left) / rect.width, fy = (e.clientY - rect.top) / rect.height;
           var rx2 = -(fy - .5) * 10, ry2 = (fx - .5) * 10;
+          if (card.classList.contains('search-box')) return;
           card.style.transform = 'perspective(800px) rotateX(' + rx2.toFixed(2) + 'deg) rotateY(' + ry2.toFixed(2) + 'deg)';
           card.classList.add('hovered');
         });
         card.addEventListener('mouseleave', function () {
+          if (card.classList.contains('search-box')) return;
           card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)';
           card.classList.remove('hovered');
         });
@@ -4218,10 +4259,159 @@
 
     function fetchPortfolio(wallet) {
       setLoadingState(true);
+      showFetchingOverlay(wallet);
       fetch(API_BASE + '/portfolio/' + encodeURIComponent(wallet))
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function (data) { _portfolioData = data; _allTokens = data.tokens || []; renderOverview(data); renderTokens(_allTokens); renderNFTs(data.nfts || []); setLoadingState(false); })
-        .catch(function (err) { setLoadingState(false); showApiError('Portfolio fetch failed: ' + err.message); });
+        .then(function(data) {
+          _portfolioData = data;
+          _allTokens = data.tokens || [];
+          renderOverview(data);
+          renderTokens(_allTokens);
+          renderNFTs(data.nfts || []);
+          hideFetchingOverlay();
+          setLoadingState(false);
+        })
+        .catch(function(err) {
+          hideFetchingOverlay();
+          setLoadingState(false);
+          showApiError('Portfolio fetch failed: ' + err.message);
+        });
+    }
+
+    function showFetchingOverlay(wallet) {
+      var existing = document.getElementById('fetchOverlay');
+      if (existing) existing.remove();
+
+      var short = wallet.length > 16
+        ? wallet.slice(0,8)+'...'+wallet.slice(-6)
+        : wallet;
+
+      var overlay = document.createElement('div');
+      overlay.id = 'fetchOverlay';
+      overlay.style.cssText =
+        'position:fixed;inset:0;background:rgba(6,12,26,0.92);'
+        +'backdrop-filter:blur(8px);z-index:9999;'
+        +'display:flex;flex-direction:column;'
+        +'align-items:center;justify-content:center;gap:2rem;';
+
+      overlay.innerHTML =
+        '<div style="position:relative;width:80px;height:80px;">'
+        +'<svg viewBox="0 0 80 80" style="width:80px;height:80px;'
+        +'animation:spin 1s linear infinite;">'
+        +'<circle cx="40" cy="40" r="34" fill="none" '
+        +'stroke="rgba(59,123,255,0.15)" stroke-width="6"/>'
+        +'<circle cx="40" cy="40" r="34" fill="none" '
+        +'stroke="url(#fetchGrad)" stroke-width="6" '
+        +'stroke-linecap="round" stroke-dasharray="60 154"/>'
+        +'<defs><linearGradient id="fetchGrad" '
+        +'x1="0%" y1="0%" x2="100%" y2="0%">'
+        +'<stop offset="0%" stop-color="#3B7BFF"/>'
+        +'<stop offset="100%" stop-color="#00D4FF"/>'
+        +'</linearGradient></defs></svg>'
+        +'<div style="position:absolute;inset:0;display:flex;'
+        +'align-items:center;justify-content:center;'
+        +'font-size:22px;">⬡</div></div>'
+        +'<div style="text-align:center;">'
+        +'<div style="font-family:\'Syne\',sans-serif;font-size:1.1rem;'
+        +'font-weight:700;color:#e8eeff;margin-bottom:8px;">'
+        +'Fetching Portfolio</div>'
+        +'<div style="font-family:var(--mono);font-size:12px;'
+        +'color:#00D4FF;background:rgba(0,212,255,0.08);'
+        +'border:1px solid rgba(0,212,255,0.2);padding:6px 16px;'
+        +'border-radius:8px;">'+short+'</div></div>'
+        +'<div style="display:flex;flex-direction:column;gap:10px;'
+        +'min-width:260px;" id="fetchChainStatus">'
+        +['ethereum','polygon','bsc','solana'].map(function(c,i){
+            var labels = {ethereum:'Ethereum',polygon:'Polygon',
+                          bsc:'BNB Chain',solana:'Solana'};
+            var colors = {ethereum:'#627EEA',polygon:'#8247E5',
+                          bsc:'#F3BA2F',solana:'#9945FF'};
+            var icons  = {ethereum:'Ξ',polygon:'⬡',bsc:'◈',solana:'◎'};
+            return '<div id="fetchRow_'+c+'" style="display:flex;'
+              +'align-items:center;gap:10px;padding:10px 16px;'
+              +'background:rgba(255,255,255,0.03);border-radius:8px;'
+              +'border:1px solid rgba(255,255,255,0.06);'
+              +'opacity:0.4;transition:all 0.4s ease;">'
+              +'<span style="color:'+colors[c]+';font-size:16px;">'
+              +icons[c]+'</span>'
+              +'<span style="color:#8a9bc8;font-size:13px;flex:1;'
+              +'font-family:var(--mono);">'+labels[c]+'</span>'
+              +'<span id="fetchRowStatus_'+c
+              +'" style="font-size:12px;color:#2d4a6e;'
+              +'font-family:var(--mono);">waiting</span></div>';
+          }).join('')
+        +'</div>'
+        +'<div style="width:280px;">'
+        +'<div style="background:rgba(255,255,255,0.06);'
+        +'border-radius:9999px;height:4px;overflow:hidden;">'
+        +'<div id="fetchProgressBar" style="height:100%;width:0%;'
+        +'background:linear-gradient(90deg,#3B7BFF,#00D4FF);'
+        +'border-radius:9999px;transition:width 0.5s ease;"></div>'
+        +'</div>'
+        +'<div style="display:flex;justify-content:space-between;'
+        +'margin-top:6px;">'
+        +'<span style="font-size:11px;color:#2d4a6e;font-family:var(--mono);">'
+        +'Querying 4 chains in parallel</span>'
+        +'<span id="fetchPct" style="font-size:11px;color:#00D4FF;'
+        +'font-family:var(--mono);">0%</span>'
+        +'</div></div>';
+
+      document.body.appendChild(overlay);
+
+      if (!document.getElementById('spinStyle')) {
+        var s = document.createElement('style');
+        s.id = 'spinStyle';
+        s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(s);
+      }
+
+      var chains = ['ethereum','polygon','bsc','solana'];
+      var pcts   = [20, 45, 70, 95];
+      chains.forEach(function(c, i) {
+        setTimeout(function() {
+          var row = document.getElementById('fetchRow_'+c);
+          var st  = document.getElementById('fetchRowStatus_'+c);
+          var pb  = document.getElementById('fetchProgressBar');
+          var pp  = document.getElementById('fetchPct');
+          if (row) {
+            row.style.opacity    = '1';
+            row.style.background = 'rgba(59,123,255,0.06)';
+            row.style.border     = '1px solid rgba(59,123,255,0.2)';
+          }
+          if (st) { st.textContent = 'fetching...'; st.style.color = '#00D4FF'; }
+          if (pb) pb.style.width = pcts[i] + '%';
+          if (pp) pp.textContent = pcts[i] + '%';
+          setTimeout(function() {
+            if (st) { st.textContent = '✓ done'; st.style.color = '#00E5A0'; }
+          }, 400);
+        }, i * 350);
+      });
+    }
+
+    function hideFetchingOverlay() {
+      var overlay = document.getElementById('fetchOverlay');
+      if (!overlay) return;
+      var pb = document.getElementById('fetchProgressBar');
+      var pp = document.getElementById('fetchPct');
+      if (pb) pb.style.width = '100%';
+      if (pp) pp.textContent = '100%';
+      ['ethereum','polygon','bsc','solana'].forEach(function(c) {
+        var st = document.getElementById('fetchRowStatus_'+c);
+        if (st) { st.textContent = '✓ done'; st.style.color = '#00E5A0'; }
+        var row = document.getElementById('fetchRow_'+c);
+        if (row) {
+          row.style.opacity    = '1';
+          row.style.background = 'rgba(0,229,160,0.05)';
+          row.style.border     = '1px solid rgba(0,229,160,0.2)';
+        }
+      });
+      setTimeout(function() {
+        overlay.style.transition = 'opacity 0.4s ease';
+        overlay.style.opacity    = '0';
+        setTimeout(function() {
+          if (overlay.parentNode) overlay.remove();
+        }, 400);
+      }, 600);
     }
 
     function fetchTransactions(wallet) {
@@ -4278,6 +4468,7 @@
         if (row) { var s = row.querySelector('.chain-bar-score'); if (s) s.textContent = score; }
       });
       buildDonut(chains); buildTokenBars(tokens);
+      if (data.state_machine) renderStateMachine(data.state_machine);
     }
 
     function buildDonut(chains) {
@@ -4369,6 +4560,186 @@
           + '<div style="text-align:right;">' + (ts ? '<div style="font-size:12px;color:var(--text-muted);">' + ts + '</div>' : '')
           + '<a href="https://etherscan.io/tx/' + escHtml(tx.hash || '') + '" target="_blank" style="font-size:11px;color:var(--cyan);font-family:var(--mono);">' + short(tx.hash) + ' ↗</a></div></div>';
       }).join('');
+    }
+
+    function renderStateMachine(sm) {
+      var container = document.getElementById('smContainer');
+      if (!container || !sm) return;
+
+      var STATE_ICONS = {
+        STABLE:'✓', AT_RISK:'⚠', CRITICAL:'✗',
+        MIGRATING:'↔', RESILIENT:'✓', UNKNOWN:'?'
+      };
+      var ALL_STATES = [
+        {key:'STABLE',    label:'Stable',    color:'#22c55e'},
+        {key:'AT_RISK',   label:'At Risk',   color:'#f59e0b'},
+        {key:'CRITICAL',  label:'Critical',  color:'#ef4444'},
+        {key:'MIGRATING', label:'Migrating', color:'#3b82f6'},
+        {key:'RESILIENT', label:'Resilient', color:'#00d4aa'},
+      ];
+      var CHAIN_ICONS  = { ethereum:'Ξ', polygon:'⬡', bsc:'◈', solana:'◎' };
+      var CHAIN_LABELS2 = { ethereum:'Ethereum', polygon:'Polygon', bsc:'BNB Chain', solana:'Solana' };
+      var CHAIN_ORDER  = ['ethereum','polygon','bsc','solana'];
+
+      function hex2rgba(hex, a) {
+        var c = hex.replace('#','');
+        var r = parseInt(c.slice(0,2),16);
+        var g = parseInt(c.slice(2,4),16);
+        var b = parseInt(c.slice(4,6),16);
+        return 'rgba('+r+','+g+','+b+','+a+')';
+      }
+
+      var stateColor = sm.portfolio_state_color || '#22c55e';
+      var isPulsing  = sm.portfolio_state === 'CRITICAL' || sm.portfolio_state === 'AT_RISK';
+
+      /* ── STATE DIAGRAM ── */
+      var stateNodesHtml = ALL_STATES.map(function(s, idx) {
+        var isActive = sm.portfolio_state === s.key;
+        var circleStyle = isActive
+          ? 'border:2px solid '+s.color+';background:'+hex2rgba(s.color,0.2)+';'
+          : 'border:2px solid #1e3a5c;background:#0d1729;';
+        var iconColor  = isActive ? s.color : '#2d4a6e';
+        var labelColor = isActive ? '#fff'   : '#2d4a6e';
+        var fw = isActive ? '700' : '400';
+        var connector = idx < ALL_STATES.length - 1
+          ? '<div style="flex:0.4;height:1px;background:#1e3a5c;align-self:center;margin-bottom:20px;"></div>'
+          : '';
+        return '<div style="display:flex;align-items:flex-start;flex:1;">'
+          + '<div style="flex:1;text-align:center;">'
+          + '<div style="width:40px;height:40px;border-radius:50%;'+circleStyle
+          + 'display:flex;align-items:center;justify-content:center;margin:0 auto;transition:all 0.3s;">'
+          + '<span style="color:'+iconColor+';font-weight:bold;font-size:15px;">'
+          + (STATE_ICONS[s.key]||'?')+'</span></div>'
+          + '<p style="color:'+labelColor+';font-weight:'+fw+';font-size:11px;'
+          + 'margin-top:6px;font-family:var(--mono);">'+s.label+'</p></div>'
+          + '</div>'
+          + connector;
+      }).join('');
+
+      /* ── CHAIN NODES ── */
+      var chainNodesHtml = CHAIN_ORDER.map(function(chain) {
+        var node = (sm.chain_nodes && sm.chain_nodes[chain]) || {
+          state:'UNKNOWN', value_usd:0, percentage:0,
+          health_score:0, state_color:'#2d4a6e', failure_reason:null
+        };
+        var nc = node.state_color || '#2d4a6e';
+        var fmtVal = node.value_usd >= 1e6
+          ? '$'+(node.value_usd/1e6).toFixed(2)+'M'
+          : node.value_usd >= 1000
+            ? '$'+node.value_usd.toLocaleString(undefined,{maximumFractionDigits:0})
+            : '$'+parseFloat(node.value_usd||0).toFixed(2);
+
+        return '<div style="background:'+hex2rgba('#1a3050',0.5)
+          +';border:1px solid '+hex2rgba(nc,0.3)
+          +';border-radius:12px;padding:14px;">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+          +'<div style="display:flex;align-items:center;gap:6px;">'
+          +'<span style="font-size:18px;color:'+nc+';">'+(CHAIN_ICONS[chain]||'●')+'</span>'
+          +'<span style="color:#e8eeff;font-size:13px;font-weight:600;">'+(CHAIN_LABELS2[chain]||chain)+'</span></div>'
+          +'<span style="background:'+hex2rgba(nc,0.15)
+          +';color:'+nc+';font-size:10px;padding:2px 8px;border-radius:9999px;'
+          +'border-radius:9999px;font-weight:800;text-transform:uppercase;'
+          +'font-family:var(--mono);letter-spacing:0.5px;'
+          +'border:1px solid '+hex2rgba(nc,0.5)+';">'+node.state+'</span></div>'
+          +'<div style="color:'+(node.value_usd > 0 ? '#ffffff' : '#2d4a6e')
+          +';font-size:20px;font-weight:900;margin-bottom:10px;'
+          +'font-family:var(--mono);'
+          +'text-shadow:'+(node.value_usd > 0
+            ? '0 0 20px '+nc+', 0 2px 4px rgba(0,0,0,0.8)'
+            : 'none')+';">'
+          +fmtVal+'</div>'
+          +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+          +'<span style="color:#4a6a8a;font-size:11px;">Health</span>'
+          +'<span style="color:#ffffff;font-size:12px;font-weight:700;'
+          +'font-family:var(--mono);background:'+hex2rgba(nc,0.2)
+          +';padding:1px 6px;border-radius:4px;">'
+          +node.health_score+'</span></div>'
+          +'<div style="background:#0d1729;border-radius:9999px;height:5px;overflow:hidden;">'
+          +'<div style="width:'+node.health_score+'%;height:100%;background:'+nc
+          +';border-radius:9999px;transition:width 0.7s ease;"></div></div>'
+          +(node.failure_reason
+            ? '<p style="color:#f59e0b;font-size:11px;margin-top:8px;white-space:nowrap;overflow:hidden;'
+              +'text-overflow:ellipsis;font-family:var(--mono);" title="'+escHtml(node.failure_reason)+'">'
+              +'⚠ '+escHtml(node.failure_reason)+'</p>'
+            : '')
+          +'</div>';
+      }).join('');
+
+      /* ── MIGRATION PLAN ── */
+      var mp = sm.migration_plan || {};
+      var migrationHtml = mp.migration_needed
+        ? '<div style="background:rgba(120,53,15,0.2);border:1px solid rgba(146,64,14,0.3);'
+          +'border-radius:12px;padding:16px;margin-bottom:24px;">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
+          +'<span style="color:#fbbf24;font-size:18px;">⚡</span>'
+          +'<span style="color:#fff;font-weight:600;">Migration Plan</span>'
+          +'<span style="background:rgba(120,53,15,0.4);color:#fbbf24;font-size:11px;'
+          +'padding:2px 8px;border-radius:9999px;font-family:var(--mono);">PRISM Recommended</span></div>'
+          +(mp.plans||[]).map(function(plan, i) {
+            var isImm = plan.urgency === 'IMMEDIATE';
+            var fmtRisk = plan.value_at_risk >= 1e6
+              ? '$'+(plan.value_at_risk/1e6).toFixed(2)+'M'
+              : '$'+parseFloat(plan.value_at_risk||0).toLocaleString();
+            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;'
+              +(i < (mp.plans.length-1) ? 'border-bottom:1px solid rgba(146,64,14,0.2);' : '')+'">' 
+              +'<div style="display:flex;align-items:center;gap:10px;">'
+              +'<span style="background:#0d1729;color:#fff;font-family:var(--mono);'
+              +'font-size:12px;padding:4px 12px;border-radius:6px;">'+(CHAIN_LABELS2[plan.from_chain]||plan.from_chain)+'</span>'
+              +'<span style="color:#fbbf24;font-weight:700;font-size:16px;">→</span>'
+              +'<span style="background:#0d1729;color:#4ade80;font-family:var(--mono);'
+              +'font-size:12px;padding:4px 12px;border-radius:6px;">'+(CHAIN_LABELS2[plan.to_chain]||plan.to_chain)+'</span></div>'
+              +'<div style="text-align:right;">'
+              +'<span style="background:'+(isImm ? 'rgba(127,29,29,0.4)' : 'rgba(120,53,15,0.4)')
+              +';color:'+(isImm ? '#f87171' : '#fbbf24')
+              +';border:1px solid '+(isImm ? '#b91c1c' : '#b45309')
+              +';font-size:10px;padding:2px 8px;border-radius:9999px;font-weight:700;'
+              +'text-transform:uppercase;font-family:var(--mono);display:block;margin-bottom:4px;">'+plan.urgency+'</span>'
+              +'<span style="color:#4a6a8a;font-size:11px;">'+fmtRisk+'</span></div></div>';
+          }).join('')
+          +'<p style="color:#fde68a;font-size:13px;margin-top:10px;">'
+          +'Estimated safety improvement: <strong>+'+mp.estimated_safety_improvement+'%</strong></p></div>'
+        : '<div style="background:rgba(5,46,22,0.2);border:1px solid rgba(22,101,52,0.3);'
+          +'border-radius:12px;padding:16px;margin-bottom:24px;'
+          +'display:flex;align-items:center;gap:12px;">'
+          +'<span style="color:#4ade80;font-size:20px;">✓</span>'
+          +'<span style="color:#86efac;font-size:13px;">'
+          +'No migration needed — portfolio state is stable across all active chains'
+          +'</span></div>';
+
+      /* ── ASSEMBLE ── */
+      container.innerHTML =
+        '<div style="background:var(--navy-card);border:1px solid var(--border);'
+        +'border-radius:14px;padding:1.75rem;margin-bottom:1.75rem;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;">'
+        +'<div>'
+        +'<h3 style="color:#e8eeff;font-weight:700;font-size:18px;'
+        +'font-family:\'Syne\',sans-serif;margin:0;">Protocol State Machine</h3>'
+        +'<p style="color:#4a6a8a;font-size:13px;margin-top:4px;">'
+        +'Resilient interoperable portfolio state</p></div>'
+        +'<div style="background:'+hex2rgba(stateColor,0.15)
+        +';border:1px solid '+hex2rgba(stateColor,0.3)
+        +';padding:6px 14px;border-radius:9999px;display:flex;align-items:center;gap:8px;">'
+        +'<span style="width:8px;height:8px;border-radius:50%;background:'+stateColor
+        +';display:inline-block;'
+        +(isPulsing ? 'animation:pulse-green 1.5s ease-in-out infinite;' : '')
+        +'"></span>'
+        +'<span style="color:'+stateColor+';font-weight:700;text-transform:uppercase;'
+        +'font-size:13px;font-family:var(--mono);">'+(sm.portfolio_state_label||sm.portfolio_state)+'</span></div></div>'
+        +'<div style="display:flex;align-items:flex-start;margin-bottom:2rem;">'
+        +stateNodesHtml+'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;">'
+        +chainNodesHtml+'</div>'
+        +migrationHtml
+        +'<div style="background:rgba(30,58,95,0.3);border:1px solid rgba(30,64,175,0.3);'
+        +'border-radius:8px;padding:12px 14px;display:flex;align-items:flex-start;gap:8px;">'
+        +'<span style="color:#60a5fa;font-size:14px;flex-shrink:0;margin-top:1px;">ℹ</span>'
+        +'<p style="font-size:12px;margin:0;line-height:1.6;">'
+        +'<span style="color:#93c5fd;font-weight:600;">Protocol Resilient Interoperable State Machine: </span>'
+        +'<span style="color:rgba(191,219,254,0.7);">In a full SOVEREIGN deployment, this state machine '
+        +'drives automatic cross-chain execution routing. State transitions trigger protocol-level '
+        +'migration — your financial state survives any single chain failure.</span>'
+        +'</p></div>'
+        +'</div>';
     }
 
     function sendAIMessage(preset) {

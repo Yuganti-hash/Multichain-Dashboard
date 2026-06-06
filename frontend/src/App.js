@@ -21,6 +21,7 @@ import TransactionHistory from "./components/TransactionHistory";
 import { ChainPieChart }  from "./components/PieChart";
 import { TokenBarChart }  from "./components/BarChart";
 import PrismHealth        from "./components/PrismHealth";
+import StateMachine       from "./components/StateMachine";
 import AiAdvisor          from "./components/AiAdvisor";
 
 import { fetchPortfolio, fetchTransactions, checkHealth } from "./services/api";
@@ -414,6 +415,10 @@ export default function App() {
 
                 {portfolio.prism_health && (
                   <PrismHealth prismHealth={portfolio.prism_health} />
+                )}
+
+                {portfolio.state_machine && (
+                  <StateMachine stateMachine={portfolio.state_machine} />
                 )}
 
                 <ChainBreakdown chainBreakdown={portfolio.chain_breakdown} />
