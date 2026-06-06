@@ -295,3 +295,22 @@ def calculate_prism_health_score(chain_breakdown: list[dict], tokens: list[dict]
         "recommendation": recommendation,
         "prism_ready":   overall_score >= 70,
     }
+
+
+# ===========================================================================
+# PUBLIC FUNCTION 5 — calculate_credit_score
+# ===========================================================================
+def calculate_credit_score(tokens: list, transactions: list) -> dict:
+    score = 500
+    score += min(len(tokens) * 0.05, 100)
+    score += min(len(transactions) * 5, 150)
+    chain_count = len(set(t.get("chain") for t in tokens if t.get("chain")))
+    score += chain_count * 30
+    score = int(min(850, max(300, score)))
+    if score >= 750: grade = "A"
+    elif score >= 650: grade = "B"
+    elif score >= 550: grade = "C"
+    else: grade = "D"
+    return {"score": score, "grade": grade,
+            "label": "CREDEX On-Chain Credit Score",
+            "max": 850}

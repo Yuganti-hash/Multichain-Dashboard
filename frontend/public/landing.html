@@ -4469,6 +4469,109 @@
       });
       buildDonut(chains); buildTokenBars(tokens);
       if (data.state_machine) renderStateMachine(data.state_machine);
+
+      var cards = [
+        { key:'credit_score', id:'credexCard', before:'prismAppCard',
+          render: function(d) {
+            var g = {A:'#00E5A0',B:'#3B7BFF',C:'#FFB300',D:'#FF4545'}
+            return '<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<div><div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);'
+              +'letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">CREDEX · Credit Score</div>'
+              +'<div style="font-family:Syne,sans-serif;font-size:1.8rem;font-weight:800;color:#fff;">'
+              +d.score+'<span style="font-size:13px;color:var(--text-muted);"> / 850</span></div>'
+              +'<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'
+              +'Token diversity + tx history + chain activity</div></div>'
+              +'<div style="text-align:center;"><div style="width:60px;height:60px;border-radius:50%;'
+              +'border:3px solid '+(g[d.grade]||'#888')+';display:flex;align-items:center;'
+              +'justify-content:center;"><span style="font-size:1.6rem;font-weight:800;color:'
+              +(g[d.grade]||'#888')+';">'+d.grade+'</span></div>'
+              +'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">GRADE</div></div></div>'
+          },
+          style:'padding:1.5rem;margin-bottom:1.75rem;border-radius:14px;'
+            +'background:linear-gradient(135deg,rgba(59,123,255,0.06),rgba(0,212,255,0.03));'
+            +'border:1.5px solid rgba(0,212,255,0.2);'
+        },
+        { key:'vertex', id:'vertexCard', before:'riskCard', after:true,
+          render: function(d) {
+            var ok = d.status==='CLEAR'
+            var c  = ok?'#00E5A0':'#FF4545'
+            return '<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<div style="display:flex;align-items:center;gap:10px;">'
+              +'<span style="font-size:20px;color:'+c+';">'+(ok?'✓':'✗')+'</span>'
+              +'<div><div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);'
+              +'letter-spacing:2px;text-transform:uppercase;">VERTEX · Compliance</div>'
+              +'<div style="color:#fff;font-size:13px;font-weight:600;margin-top:2px;">'+d.reason+'</div>'
+              +(d.credential?'<div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);">'+d.credential+'</div>':'')
+              +'</div></div>'
+              +'<span style="color:'+c+';border:1px solid '+c+'40;background:'+c+'10;'
+              +'font-size:11px;font-weight:700;padding:4px 14px;border-radius:9999px;'
+              +'font-family:var(--mono);">'+d.status+'</span></div>'
+          },
+          style:'padding:1rem 1.5rem;margin-bottom:1.75rem;border-radius:12px;'
+        },
+        { key:'zk_proof', id:'zkCard', before:'prismAppCard', after:true,
+          render: function(d) {
+            return '<div style="display:flex;justify-content:space-between;'
+              +'align-items:center;margin-bottom:8px;">'
+              +'<div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);'
+              +'letter-spacing:2px;text-transform:uppercase;">ZK Proof · State Integrity</div>'
+              +'<span style="background:rgba(139,92,246,0.15);color:#8B5CF6;'
+              +'border:1px solid rgba(139,92,246,0.3);font-size:10px;font-weight:700;'
+              +'padding:3px 10px;border-radius:9999px;font-family:var(--mono);">'
+              +(d.verified?'✓ VERIFIED':'UNVERIFIED')+'</span></div>'
+              +'<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);'
+              +'background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:8px;word-break:break-all;">'
+              +d.proof.slice(0,48)+'...</div>'
+              +'<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">'+d.note+'</div>'
+          },
+          style:'padding:1rem 1.5rem;margin-bottom:1.75rem;border-radius:12px;'
+            +'background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);'
+        },
+        { key:'lumina', id:'luminaCard', before:'chain-section-title', bySel:true,
+          render: function(d) {
+            if (!d.chains||!d.chains.length) return ''
+            var maxT = Math.max.apply(null,d.chains.map(function(x){return x.tvl||0}))||1
+            var clrs = {Ethereum:'#627EEA',Polygon:'#8247E5',BSC:'#F3BA2F',
+                        Solana:'#9945FF',Arbitrum:'#28A0F0',Base:'#0052FF'}
+            return '<div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);'
+              +'letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;">'
+              +'LUMINA · Liquidity Intelligence <span style="float:right;">via DeFiLlama</span></div>'
+              +d.chains.map(function(c){
+                var pct=Math.max((c.tvl/maxT)*100,2).toFixed(1)
+                var col=clrs[c.name]||'#3B7BFF'
+                return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+                  +'<span style="width:70px;font-size:11px;color:var(--text-muted);'
+                  +'text-align:right;font-family:var(--mono);">'+c.name+'</span>'
+                  +'<div style="flex:1;height:20px;background:rgba(255,255,255,0.04);'
+                  +'border-radius:4px;overflow:hidden;border:1px solid var(--border);">'
+                  +'<div style="width:'+pct+'%;height:100%;background:'+col+';border-radius:4px;"></div></div>'
+                  +'<span style="width:65px;font-size:11px;font-family:var(--mono);'
+                  +'color:var(--text-secondary);font-weight:600;">'+c.label+'</span></div>'
+              }).join('')
+          },
+          style:'padding:1.5rem;margin-bottom:1.75rem;border-radius:14px;'
+            +'background:var(--navy-card);border:1px solid var(--border);'
+        }
+      ]
+
+      cards.forEach(function(cfg) {
+        if (!data[cfg.key]) return
+        if (document.getElementById(cfg.id)) return
+        var html = cfg.render(data[cfg.key])
+        if (!html) return
+        var div = document.createElement('div')
+        div.id = cfg.id
+        div.className = 'app-3d-card'
+        div.style.cssText = cfg.style
+        div.innerHTML = html
+        var anchor = cfg.bySel
+          ? document.querySelector('.'+cfg.before)
+          : document.getElementById(cfg.before)
+        if (!anchor) return
+        if (cfg.after) anchor.parentNode.insertBefore(div, anchor.nextSibling)
+        else anchor.parentNode.insertBefore(div, anchor)
+      })
+      setTimeout(init3DCards, 100)
     }
 
     function buildDonut(chains) {

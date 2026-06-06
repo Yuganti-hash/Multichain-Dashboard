@@ -28,13 +28,15 @@ from fastapi.responses import JSONResponse
 # ---------------------------------------------------------------------------
 # Chain modules — each exposes get_portfolio() and get_transactions()
 # ---------------------------------------------------------------------------
-from chains import ethereum, polygon, bsc, solana
+from chains import ethereum, polygon, bsc, solana, arbitrum
 
 # ---------------------------------------------------------------------------
 # Utility modules
 # ---------------------------------------------------------------------------
 from utils import prices as prices_util
 from utils import risk as risk_util
+from utils import compliance
+from utils import lumina
 from ai_advisor import ask_advisor, is_advisor_ready
 from state_machine import StateMachine
 
@@ -116,14 +118,15 @@ async def get_portfolio(wallet_address: str):
         # Each get_portfolio() returns:
         #   { "chain": str, "tokens": list, "nfts": list, "native_balance": float }
         # ------------------------------------------------------------------
-        eth_data, poly_data, bsc_data, sol_data = await asyncio.gather(
+        eth_data, poly_data, bsc_data, sol_data, arb_data = await asyncio.gather(
             ethereum.get_portfolio(wallet_address),
             polygon.get_portfolio(wallet_address),
             bsc.get_portfolio(wallet_address),
             solana.get_portfolio(wallet_address),
+            arbitrum.get_portfolio(wallet_address),
         )
 
-        all_chains: list[dict] = [eth_data, poly_data, bsc_data, sol_data]
+        all_chains: list[dict] = [eth_data, poly_data, bsc_data, sol_data, arb_data]
 
         # ------------------------------------------------------------------
         # Step 2 — Collect unique token symbols across all chains.
@@ -139,8 +142,12 @@ async def get_portfolio(wallet_address: str):
         # ------------------------------------------------------------------
         # Step 3 — Fetch live USD prices for every symbol we found.
         # get_prices() returns a dict: { "ETH": 3200.00, "MATIC": 0.85, ... }
+        # Also fetch LUMINA liquidity data concurrently.
         # ------------------------------------------------------------------
-        prices: dict[str, float] = await prices_util.get_prices(list(unique_symbols))
+        prices, lumina_data = await asyncio.gather(
+            prices_util.get_prices(list(unique_symbols)),
+            lumina.get_liquidity_data(),
+        )
 
         # ------------------------------------------------------------------
         # Step 4 — Compute USD value for each token; build flat token list.
@@ -203,8 +210,15 @@ async def get_portfolio(wallet_address: str):
         # ------------------------------------------------------------------
         risk_score: str = risk_util.calculate_risk(chain_breakdown)
 
+        # VERTEX compliance screening
+        vertex = compliance.check_compliance(wallet_address)
+
         # PRISM health score — chain-agnostic resilience rating
         prism_health = risk_util.calculate_prism_health_score(chain_breakdown, all_tokens)
+
+        # CREDEX On-Chain Credit Score
+        credit_score = risk_util.calculate_credit_score(
+            all_tokens, eth_data.get("transactions", []))
 
         # Build Protocol Resilient Interoperable State Machine
         sm = StateMachine(
@@ -221,7 +235,15 @@ async def get_portfolio(wallet_address: str):
             "wallet":          wallet_address,
             "total_value_usd": round(total_value_usd, 2),
             "risk_score":      risk_score,
+            "vertex":          vertex,
             "prism_health":    prism_health,
+            "credit_score":    credit_score,
+            "lumina":          lumina_data,
+            "zk_proof":        compliance.generate_zk_proof(
+                                   wallet_address,
+                                   total_value_usd,
+                                   risk_score,
+                               ),
             "chain_breakdown": chain_breakdown,
             "tokens":          all_tokens,
             "nfts":            all_nfts,
