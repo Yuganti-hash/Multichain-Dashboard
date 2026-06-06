@@ -23,6 +23,8 @@ import { TokenBarChart }  from "./components/BarChart";
 import PrismHealth        from "./components/PrismHealth";
 import StateMachine       from "./components/StateMachine";
 import AiAdvisor          from "./components/AiAdvisor";
+import ExecutionRouter    from "./components/ExecutionRouter";
+import ResilienceDashboard from "./components/ResilienceDashboard";
 
 import { fetchPortfolio, fetchTransactions, checkHealth } from "./services/api";
 
@@ -42,6 +44,7 @@ const TABS = [
   { id: "tokens",        label: "Tokens" },
   { id: "nfts",          label: "NFTs" },
   { id: "transactions",  label: "Transactions" },
+  { id: "resilience",    label: "🛡️ Resilience" },
   { id: "ai",            label: "🧠 AI Advisor" },
 ];
 
@@ -103,7 +106,7 @@ function getGatewayFallbacks(src) {
 }
 
 // Per-card NFT image component with gateway fallback
-function NftImage({ nft }) {
+function NftImage({ nft, onLoadError }) {
   const initial = resolveImage(nft);
   const [src, setSrc]         = React.useState(initial);
   const [failed, setFailed]   = React.useState(!initial);
@@ -117,7 +120,10 @@ function NftImage({ nft }) {
     setSrc(next);
     setFailed(!next);
     setLoaded(false);
-  }, [nft]);
+    if (!next && onLoadError) {
+      onLoadError();
+    }
+  }, [nft, onLoadError]);
 
   const handleError = () => {
     if (src) triedRef.current.add(src);
@@ -134,6 +140,7 @@ function NftImage({ nft }) {
       setSrc(next);
     } else {
       setFailed(true);
+      if (onLoadError) onLoadError();
     }
   };
 
@@ -198,6 +205,7 @@ export default function App() {
   const [error,         setError]         = useState(null);
   const [apiStatus,     setApiStatus]     = useState("checking"); // "ok" | "error" | "checking"
   const [activeTab,     setActiveTab]     = useState("overview");
+  const [failedNftKeys, setFailedNftKeys] = useState(new Set());
 
   // ── Effects ───────────────────────────────────────────────────────────────
 
@@ -223,6 +231,7 @@ export default function App() {
     setTransactions(null);
     setWalletAddress(address);
     setActiveTab("overview");
+    setFailedNftKeys(new Set());
 
     try {
       // Fetch portfolio (primary — shown first)
@@ -266,6 +275,12 @@ export default function App() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  const visibleNfts = (portfolio?.nfts || []).filter((nft, idx) => {
+    const key = `${nft.token_address}-${nft.token_id}-${idx}`;
+    if (failedNftKeys.has(key)) return false;
+    return !!resolveImage(nft);
+  });
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -389,9 +404,9 @@ export default function App() {
                       {portfolio.tokens.length}
                     </span>
                   )}
-                  {tab.id === "nfts" && portfolio.nfts?.length > 0 && (
+                  {tab.id === "nfts" && visibleNfts.length > 0 && (
                     <span className="ml-1.5 text-xs bg-gray-700 text-gray-300 rounded-full px-1.5 py-0.5">
-                      {portfolio.nfts.length}
+                      {visibleNfts.length}
                     </span>
                   )}
                   {tab.id === "transactions" && transactions?.transactions?.length > 0 && (
@@ -406,7 +421,7 @@ export default function App() {
             {/* ── OVERVIEW TAB ─────────────────────────────────────────── */}
             {activeTab === "overview" && (
               <div className="space-y-6 transition-all duration-200">
-                <PortfolioSummary portfolio={portfolio} />
+                <PortfolioSummary portfolio={{ ...portfolio, nfts: visibleNfts }} />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <ChainPieChart data={portfolio.chain_breakdown} />
@@ -415,6 +430,10 @@ export default function App() {
 
                 {portfolio.prism_health && (
                   <PrismHealth prismHealth={portfolio.prism_health} />
+                )}
+
+                {portfolio.router && (
+                  <ExecutionRouter routerData={portfolio.router} />
                 )}
 
                 {portfolio.state_machine && (
@@ -435,14 +454,14 @@ export default function App() {
             {/* ── NFTS TAB ─────────────────────────────────────────────── */}
             {activeTab === "nfts" && (
               <div className="transition-all duration-200">
-                {portfolio.nfts && portfolio.nfts.length > 0 ? (
+                {visibleNfts && visibleNfts.length > 0 ? (
                   <>
                     {/* Section header */}
                     <div className="flex items-center justify-between mb-5">
                       <h2 className="text-white font-bold text-lg">
                         NFTs{" "}
                         <span className="text-gray-500 font-normal text-base">
-                          ({portfolio.nfts.length} collectible{portfolio.nfts.length !== 1 ? "s" : ""})
+                          ({visibleNfts.length} collectible{visibleNfts.length !== 1 ? "s" : ""})
                         </span>
                       </h2>
                       <span className="text-xs text-gray-500 font-mono">
@@ -451,58 +470,67 @@ export default function App() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      {portfolio.nfts.map((nft, idx) => (
-                        <div
-                          key={`${nft.token_address}-${nft.token_id}-${idx}`}
-                          className="group bg-gray-900 border border-gray-800 rounded-xl overflow-hidden
-                            hover:border-indigo-500/50 transition-all duration-200
-                            hover:shadow-lg hover:shadow-indigo-900/20 hover:-translate-y-0.5"
-                        >
-                          {/* NFT image */}
-                          <div className="relative w-full aspect-square overflow-hidden
-                            bg-gradient-to-br from-indigo-950 to-purple-950">
-                            <NftImage nft={nft} />
-                          </div>
+                      {visibleNfts.map((nft, idx) => {
+                        const nftKey = `${nft.token_address}-${nft.token_id}-${idx}`;
+                        return (
+                          <div
+                            key={nftKey}
+                            className="group bg-gray-900 border border-gray-800 rounded-xl overflow-hidden
+                              hover:border-indigo-500/50 transition-all duration-200
+                              hover:shadow-lg hover:shadow-indigo-900/20 hover:-translate-y-0.5"
+                          >
+                            {/* NFT image */}
+                            <div className="relative w-full aspect-square overflow-hidden
+                              bg-gradient-to-br from-indigo-950 to-purple-950">
+                              <NftImage nft={nft} onLoadError={() => {
+                                setFailedNftKeys(prev => {
+                                  const next = new Set(prev);
+                                  next.add(nftKey);
+                                  return next;
+                                });
+                              }} />
+                            </div>
 
-                          {/* NFT details */}
-                          <div className="p-3">
-                            <p className="font-semibold text-xs text-white truncate leading-snug">
-                              {nft.name || "Unnamed NFT"}
-                            </p>
-                            <p className="text-xs text-gray-600 mt-0.5 font-mono truncate">
-                              #{nft.token_id ? String(nft.token_id).slice(0, 10) : "—"}
-                            </p>
+                            {/* NFT details */}
+                            <div className="p-3">
+                              <p className="font-semibold text-xs text-white truncate leading-snug">
+                                {nft.name || "Unnamed NFT"}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-0.5 font-mono truncate">
+                                #{nft.token_id ? String(nft.token_id).slice(0, 10) : "—"}
+                              </p>
 
-                            {/* Badges row */}
-                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                              {/* Type badge */}
-                              <span className="text-xs px-1.5 py-0.5 rounded font-medium"
-                                style={{ backgroundColor: "#1f2937", color: "#9ca3af" }}>
-                                {nft.symbol || "NFT"}
-                              </span>
+                              {/* Badges row */}
+                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                {/* Type badge */}
+                                <span className="text-xs px-1.5 py-0.5 rounded font-medium"
+                                  style={{ backgroundColor: "#1f2937", color: "#9ca3af" }}>
+                                  {nft.symbol || "NFT"}
+                                </span>
 
-                              {/* Chain badge */}
-                              <span
-                                className="text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wide"
-                                style={{
-                                  backgroundColor:
-                                    nft.chain === "ethereum" ? "#627EEA18" :
-                                    nft.chain === "polygon"  ? "#8247E518" : "#6B728018",
-                                  color:
-                                    nft.chain === "ethereum" ? "#627EEA" :
-                                    nft.chain === "polygon"  ? "#8247E5" : "#9ca3af",
-                                  border: `1px solid ${
-                                    nft.chain === "ethereum" ? "#627EEA33" :
-                                    nft.chain === "polygon"  ? "#8247E533" : "#6B728033"
-                                  }`,
-                                }}
-                              >
-                                {nft.chain}
-                              </span>
+                                {/* Chain badge */}
+                                <span
+                                  className="text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wide"
+                                  style={{
+                                    backgroundColor:
+                                      nft.chain === "ethereum" ? "#627EEA18" :
+                                      nft.chain === "polygon"  ? "#8247E518" : "#6B728018",
+                                    color:
+                                      nft.chain === "ethereum" ? "#627EEA" :
+                                      nft.chain === "polygon"  ? "#8247E5" : "#9ca3af",
+                                    border: `1px solid ${
+                                      nft.chain === "ethereum" ? "#627EEA33" :
+                                      nft.chain === "polygon"  ? "#8247E533" : "#6B728033"
+                                    }`,
+                                  }}
+                                >
+                                  {nft.chain}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 ) : (
@@ -529,6 +557,16 @@ export default function App() {
               </div>
             )}
 
+            {/* ── RESILIENCE TAB ───────────────────────────────────────── */}
+            {activeTab === "resilience" && (
+              <div className="transition-all duration-200">
+                <ResilienceDashboard
+                  stateMachine={portfolio.state_machine}
+                  prismHealth={portfolio.prism_health}
+                />
+              </div>
+            )}
+
             {/* ── AI ADVISOR TAB ───────────────────────────────────────── */}
             {activeTab === "ai" && (
               <div className="transition-all duration-200">
@@ -551,8 +589,15 @@ export default function App() {
           </div>
         )}
 
+        {/* ── Resilience tab — no portfolio loaded yet ─────────────────── */}
+        {activeTab === "resilience" && !portfolio && !loading && (
+          <div className="text-center py-20 text-gray-500">
+            Search a wallet first to view the Resilience Dashboard
+          </div>
+        )}
+
         {/* ── Welcome state — no search yet ────────────────────────────── */}
-        {!portfolio && !loading && !error && activeTab !== "ai" && (
+        {!portfolio && !loading && !error && activeTab !== "ai" && activeTab !== "resilience" && (
           <div className="mt-20 text-center">
             {/* Hero icon */}
             <div

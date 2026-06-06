@@ -39,6 +39,7 @@ function getChainLabel(chain) {
     polygon:  'Polygon',
     bsc:      'BNB Chain',
     solana:   'Solana',
+    arbitrum: 'Arbitrum',
   }
   return labels[chain] || chain
 }
@@ -50,6 +51,7 @@ function getChainIcon(chain) {
     polygon:  '⬡',
     bsc:      '◈',
     solana:   '◎',
+    arbitrum: '▲',
   }
   return icons[chain] || '●'
 }
@@ -66,7 +68,7 @@ function formatUSD(v) {
 // Constants
 // ---------------------------------------------------------------------------
 
-const CHAIN_ORDER = ['ethereum', 'polygon', 'bsc', 'solana']
+const CHAIN_ORDER = ['ethereum', 'polygon', 'bsc', 'solana', 'arbitrum']
 
 const DEFAULT_NODE = {
   state:          'UNKNOWN',
@@ -228,7 +230,7 @@ export default function StateMachine({ stateMachine }) {
       {/* ------------------------------------------------------------------ */}
       {/* CHAIN NODES GRID                                                    */}
       {/* ------------------------------------------------------------------ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {CHAIN_ORDER.map((chain) => {
           const node = chain_nodes?.[chain] || DEFAULT_NODE
 

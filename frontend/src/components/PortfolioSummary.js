@@ -175,19 +175,7 @@ export default function PortfolioSummary({ portfolio }) {
         </span>
       </div>
 
-      {/* PRISM architecture context banner */}
-      <div className="mt-4 bg-blue-950/30 border border-blue-800/20 rounded-xl p-3 flex items-center gap-3">
-        <span className="text-blue-400 text-lg flex-shrink-0">⬡</span>
-        <p className="text-xs text-gray-300 leading-relaxed">
-          <span className="text-blue-400 font-semibold">Mini-PRISM Demo: </span>
-          This dashboard aggregates your financial state independently of any
-          single chain — mirroring SOVEREIGN's state-execution separation
-          architecture. Assets tracked across{" "}
-          <span className="text-white font-semibold">
-            {chain_breakdown.filter(c => c.value_usd > 0).length} execution environments
-          </span>.
-        </p>
-      </div>
+
     </div>
   );
 }

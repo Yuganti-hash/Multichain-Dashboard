@@ -25,10 +25,15 @@ import httpx
 # ---------------------------------------------------------------------------
 COINGECKO_API_KEY: str | None = os.getenv("COINGECKO_API_KEY")
 
-# Choose the right base URL based on whether a Pro key is present
+# Choose the right base URL based on whether a key is present and its type
 if COINGECKO_API_KEY:
-    COINGECKO_BASE_URL = "https://pro-api.coingecko.com/api/v3"
-    COINGECKO_HEADERS  = {"x-cg-pro-api-key": COINGECKO_API_KEY}
+    # CoinGecko Demo keys start with 'CG-'
+    if COINGECKO_API_KEY.startswith("CG-"):
+        COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
+        COINGECKO_HEADERS  = {"x-cg-demo-api-key": COINGECKO_API_KEY}
+    else:
+        COINGECKO_BASE_URL = "https://pro-api.coingecko.com/api/v3"
+        COINGECKO_HEADERS  = {"x-cg-pro-api-key": COINGECKO_API_KEY}
 else:
     COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
     COINGECKO_HEADERS  = {}

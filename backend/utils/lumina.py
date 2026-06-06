@@ -21,6 +21,19 @@ RELEVANT_CHAINS: list[str] = [
     "Base",
 ]
 
+# ---------------------------------------------------------------------------
+# Static fallback TVL data (approximate, used when DeFiLlama is unavailable).
+# Values are conservative estimates based on publicly known chain TVL ranges.
+# ---------------------------------------------------------------------------
+_FALLBACK_TVL: dict[str, float] = {
+    "Ethereum":  45_000_000_000.0,   # ~$45B
+    "Polygon":    1_200_000_000.0,   # ~$1.2B
+    "BSC":        4_500_000_000.0,   # ~$4.5B
+    "Solana":     7_000_000_000.0,   # ~$7B
+    "Arbitrum":   2_500_000_000.0,   # ~$2.5B
+    "Base":         900_000_000.0,   # ~$0.9B
+}
+
 
 # ===========================================================================
 # PUBLIC FUNCTION — get_liquidity_data
@@ -62,5 +75,16 @@ async def get_liquidity_data() -> dict:
                 "source": "DeFiLlama",
             }
     except Exception as e:
-        print(f"[lumina] Failed to fetch liquidity data: {e}")
-        return {"status": "error", "chains": [], "source": "DeFiLlama"}
+        print(f"[lumina] Failed to fetch liquidity data: {e}. Using static fallback TVL.")
+        return {
+            "status": "fallback",
+            "chains": [
+                {
+                    "name":  name,
+                    "tvl":   tvl,
+                    "label": f"${tvl / 1e9:.1f}B TVL (est.)",
+                }
+                for name, tvl in _FALLBACK_TVL.items()
+            ],
+            "source": "DeFiLlama (static fallback)",
+        }

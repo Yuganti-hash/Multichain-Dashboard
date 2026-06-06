@@ -30,7 +30,6 @@
       color: #E8EEFF;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
-      cursor: none;
     }
 
     a {
@@ -39,7 +38,7 @@
     }
 
     button {
-      cursor: none;
+      cursor: pointer;
       border: none;
       outline: none;
       font-family: inherit;
@@ -80,45 +79,10 @@
       --card-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
     }
 
-    /* ===== CUSTOM CURSOR ===== */
-    #cursor {
-      position: fixed;
-      width: 12px;
-      height: 12px;
-      background: var(--cyan);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 99999;
-      transform: translate(-50%, -50%);
-      transition: width .15s, height .15s, background .15s;
-      mix-blend-mode: screen;
-    }
-
+    /* ===== CUSTOM CURSOR HIDE ===== */
+    #cursor,
     #cursor-ring {
-      position: fixed;
-      width: 36px;
-      height: 36px;
-      border: 1.5px solid rgba(0, 212, 255, 0.5);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 99998;
-      transform: translate(-50%, -50%);
-      transition: width .3s, height .3s, opacity .3s, border-color .3s;
-      transition-timing-function: cubic-bezier(.25, .46, .45, .94);
-    }
-
-    body:has(button:hover) #cursor,
-    body:has(a:hover) #cursor {
-      width: 20px;
-      height: 20px;
-      background: var(--purple);
-    }
-
-    body:has(button:hover) #cursor-ring,
-    body:has(a:hover) #cursor-ring {
-      width: 52px;
-      height: 52px;
-      border-color: rgba(139, 92, 246, 0.5);
+      display: none !important;
     }
 
     .magnetic {
@@ -740,7 +704,6 @@
       color: var(--text-primary);
       letter-spacing: -.03em;
       margin-bottom: 4px;
-      filter: blur(8px);
       user-select: none;
       position: relative;
       z-index: 2;
@@ -841,7 +804,6 @@
       font-weight: 700;
       color: var(--cyan);
       font-family: var(--mono);
-      filter: blur(5px);
       user-select: none;
     }
 
@@ -1111,7 +1073,7 @@
       background: var(--navy-card);
       border: 1px solid var(--border);
       padding: 1.75rem;
-      cursor: none;
+      cursor: default;
       transform-style: preserve-3d;
       transition: transform .15s ease, box-shadow .15s ease, border-color .3s;
       will-change: transform;
@@ -2252,7 +2214,7 @@
       font-size: 13.5px;
       font-weight: 500;
       color: var(--text-muted);
-      cursor: none;
+      cursor: pointer;
       border-bottom: 2px solid transparent;
       margin-bottom: -1px;
       transition: all .2s;
@@ -3099,13 +3061,622 @@
     .parallax-shallow {
       transition: transform .12s linear;
     }
+    
+    /* ── PRISM Resilience Dashboard Styles ── */
+    .resilience-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .resilience-metric-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: var(--card-shadow);
+    }
+    .resilience-metric-card:hover {
+      border-color: var(--border-bright);
+      transform: translateY(-2px);
+    }
+    .resilience-metric-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    .resilience-metric-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-family: var(--mono);
+    }
+    .resilience-metric-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -.03em;
+      line-height: 1.1;
+    }
+    .resilience-metric-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      line-height: 1.4;
+    }
+    .resilience-dial-container {
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+    .resilience-dial-svg {
+      transform: rotate(-90deg);
+    }
+    .resilience-dial-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.05);
+      stroke-width: 4;
+    }
+    .resilience-dial-fill {
+      fill: none;
+      stroke-width: 4;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s ease-out;
+    }
+    .resilience-dial-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .resilience-beacon {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      position: relative;
+      display: inline-block;
+    }
+    .resilience-beacon-ping {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    .resilience-console {
+      background: #030712;
+      border: 1px solid rgba(59,123,255,0.12);
+      border-radius: 12px;
+      padding: 1.25rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #818cf8;
+      height: 180px;
+      overflow-y: auto;
+      box-shadow: inset 0 4px 20px rgba(0,0,0,0.8);
+      border-left: 2px solid var(--purple);
+    }
+    .resilience-console-log {
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .resilience-btn {
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      color: #fff;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 15px var(--blue-glow);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      font-family: inherit;
+    }
+    .resilience-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--blue-glow);
+    }
+    .resilience-btn.reset-btn {
+      background: #111827;
+      color: var(--text-secondary);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: none;
+      margin-top: 0.75rem;
+    }
+    .resilience-btn.reset-btn:hover {
+      background: #1f2937;
+      color: #fff;
+    }
+    .resilience-console-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #111827;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: bold;
+    }
+    .resilience-ribbon {
+      background: linear-gradient(90deg, rgba(26,79,204,0.4), rgba(139,92,246,0.3));
+      border: 1px solid rgba(59,123,255,0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    .resilience-ribbon-text {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    .resilience-ribbon-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── EXECUTION ROUTER SIMULATION STYLES ── */
+    .router-sim-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .router-sim-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .router-sim-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .router-sim-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      font-family: var(--mono);
+    }
+    .router-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--mono);
+      border: 1px solid;
+      transition: all 0.4s;
+    }
+    .router-status-badge.active {
+      background: rgba(0,212,255,0.08);
+      color: var(--cyan);
+      border-color: rgba(0,212,255,0.3);
+    }
+    .router-status-badge.failure {
+      background: rgba(255,69,69,0.1);
+      color: var(--red);
+      border-color: rgba(255,69,69,0.35);
+    }
+    .router-status-badge.migrating {
+      background: rgba(59,123,255,0.1);
+      color: var(--blue);
+      border-color: rgba(59,123,255,0.35);
+    }
+    .router-status-badge.recovered {
+      background: rgba(0,229,160,0.08);
+      color: var(--green);
+      border-color: rgba(0,229,160,0.3);
+    }
+    .router-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-green 1.5s infinite;
+    }
+    /* Chain nodes grid */
+    .rs-chain-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+    .rs-chain-card {
+      background: var(--navy-card);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(.16,1,.3,1);
+      cursor: default;
+    }
+    .rs-chain-card.healthy {
+      border-color: rgba(0,229,160,0.3);
+    }
+    .rs-chain-card.degraded {
+      border-color: rgba(255,179,0,0.35);
+    }
+    .rs-chain-card.failed {
+      border-color: rgba(255,69,69,0.5);
+      background: rgba(255,69,69,0.04);
+      animation: failed-pulse 2s ease-in-out infinite;
+    }
+    .rs-chain-card.active-route {
+      border-color: rgba(0,212,255,0.6);
+      background: rgba(0,212,255,0.05);
+      box-shadow: 0 0 30px rgba(0,212,255,0.15);
+    }
+    .rs-chain-card.migrating {
+      border-color: rgba(59,123,255,0.5);
+      background: rgba(59,123,255,0.04);
+    }
+    @keyframes failed-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,69,69,0); }
+      50% { box-shadow: 0 0 20px 4px rgba(255,69,69,0.2); }
+    }
+    .rs-chain-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+    .rs-chain-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .rs-chain-value {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .rs-chain-health-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .rs-chain-health-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .rs-chain-state-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      font-family: var(--mono);
+      padding: 3px 8px;
+      border-radius: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .rs-fail-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 7px 0;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid;
+      transition: all 0.25s;
+    }
+    .rs-fail-btn.can-fail {
+      background: rgba(255,69,69,0.07);
+      color: var(--red);
+      border-color: rgba(255,69,69,0.3);
+    }
+    .rs-fail-btn.can-fail:hover {
+      background: rgba(255,69,69,0.15);
+      border-color: rgba(255,69,69,0.6);
+    }
+    .rs-fail-btn.restore-btn {
+      background: rgba(0,229,160,0.07);
+      color: var(--green);
+      border-color: rgba(0,229,160,0.3);
+    }
+    .rs-fail-btn.restore-btn:hover {
+      background: rgba(0,229,160,0.15);
+    }
+    .rs-fail-btn:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    /* Router Engine visual */
+    .router-engine-box {
+      background: linear-gradient(135deg, rgba(59,123,255,0.06), rgba(0,212,255,0.03));
+      border: 1.5px solid rgba(59,123,255,0.2);
+      border-radius: 16px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .router-engine-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .router-engine-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .router-engine-decision {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .router-flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 1rem 0;
+      position: relative;
+    }
+    .router-flow-node {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--mono);
+      position: relative;
+      transition: all 0.4s;
+    }
+    .router-flow-arrow {
+      width: 32px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 18px;
+      color: var(--cyan);
+      position: relative;
+      overflow: hidden;
+    }
+    .router-flow-arrow-animated {
+      display: inline-block;
+      animation: arrow-slide 0.8s ease-in-out infinite;
+    }
+    @keyframes arrow-slide {
+      0% { transform: translateX(-4px); opacity:0.4; }
+      50% { transform: translateX(0); opacity: 1; }
+      100% { transform: translateX(4px); opacity:0.4; }
+    }
+    /* Migration demo steps */
+    .migration-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 1rem;
+    }
+    .migration-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.04);
+      font-size: 12px;
+      color: var(--text-secondary);
+      transition: all 0.4s;
+    }
+    .migration-step.pending {
+      opacity: 0.4;
+    }
+    .migration-step.active {
+      background: rgba(59,123,255,0.08);
+      border-color: rgba(59,123,255,0.3);
+      color: var(--text-primary);
+    }
+    .migration-step.done {
+      background: rgba(0,229,160,0.05);
+      border-color: rgba(0,229,160,0.2);
+      color: var(--green);
+    }
+    .migration-step.failed-step {
+      background: rgba(255,69,69,0.06);
+      border-color: rgba(255,69,69,0.2);
+      color: var(--red);
+    }
+    .step-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      border: 1px solid;
+      font-weight: 700;
+      transition: all 0.4s;
+    }
+    /* PRISM State Object viewer */
+    .state-obj-viewer {
+      background: #030812;
+      border: 1px solid rgba(59,123,255,0.15);
+      border-radius: 14px;
+      padding: 1.25rem;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.8;
+      color: #8B9BCC;
+      max-height: 340px;
+      overflow-y: auto;
+      border-left: 3px solid var(--cyan);
+    }
+    .state-obj-viewer::-webkit-scrollbar { width: 4px; }
+    .state-obj-viewer::-webkit-scrollbar-track { background: transparent; }
+    .state-obj-viewer::-webkit-scrollbar-thumb { background: rgba(59,123,255,0.3); border-radius: 4px; }
+    .sov-key { color: #60a5fa; }
+    .sov-str { color: #34d399; }
+    .sov-num { color: #f59e0b; }
+    .sov-bool-true { color: #10b981; }
+    .sov-bool-false { color: #ef4444; }
+    .sov-null { color: #6b7280; }
+    .sov-highlight { background: rgba(0,212,255,0.08); border-radius: 3px; padding: 0 3px; }
+    /* Router sim event log */
+    .rs-event-log {
+      background: #030812;
+      border: 1px solid rgba(139,92,246,0.15);
+      border-radius: 12px;
+      border-left: 3px solid var(--purple);
+      padding: 1rem 1.25rem;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #8B9BCC;
+      height: 160px;
+      overflow-y: auto;
+    }
+    .rs-event-log::-webkit-scrollbar { width: 4px; }
+    .rs-event-log::-webkit-scrollbar-track { background: transparent; }
+    .rs-event-log::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
+    .rs-log-line {
+      margin-bottom: 4px;
+      line-height: 1.5;
+      padding: 2px 0;
+      color: var(--text-secondary);
+    }
+    .rs-log-line .log-ts {
+      color: var(--text-muted);
+      margin-right: 8px;
+    }
+    .rs-log-line .log-tag {
+      margin-right: 8px;
+      font-weight: 700;
+    }
+    .rs-log-line.log-error .log-tag { color: var(--red); }
+    .rs-log-line.log-success .log-tag { color: var(--green); }
+    .rs-log-line.log-info .log-tag { color: var(--cyan); }
+    .rs-log-line.log-warn .log-tag { color: var(--yellow); }
+    /* Standalone mode banner */
+    .rs-standalone-banner {
+      background: linear-gradient(90deg, rgba(0,229,160,0.06), rgba(0,212,255,0.04));
+      border: 1px solid rgba(0,229,160,0.2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--green);
+      font-family: var(--mono);
+      margin-bottom: 1.5rem;
+    }
+    /* Controls row */
+    .rs-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .rs-ctrl-btn {
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid;
+      transition: all 0.25s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rs-ctrl-btn.primary {
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 0 18px var(--blue-glow);
+    }
+    .rs-ctrl-btn.primary:hover {
+      box-shadow: 0 0 28px var(--blue-glow);
+      transform: translateY(-1px);
+    }
+    .rs-ctrl-btn.danger {
+      background: rgba(255,69,69,0.08);
+      color: var(--red);
+      border-color: rgba(255,69,69,0.35);
+    }
+    .rs-ctrl-btn.danger:hover {
+      background: rgba(255,69,69,0.16);
+    }
+    .rs-ctrl-btn.secondary {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-secondary);
+      border-color: rgba(255,255,255,0.08);
+    }
+    .rs-ctrl-btn.secondary:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-primary);
+    }
+    .rs-ctrl-btn:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    /* Responsive */
+    @media (max-width: 900px) {
+      .rs-chain-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 520px) {
+      .rs-chain-grid { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 
 <body>
 
-  <div id="cursor"></div>
-  <div id="cursor-ring"></div>
   <div class="noise"></div>
   <canvas id="particleCanvas"></canvas>
 
@@ -3193,8 +3764,8 @@
               <span class="dc-title">Portfolio Overview</span>
               <span class="dc-live"><span class="dc-live-dot"></span>Live</span>
             </div>
-            <div class="dc-value-masked" style="font-family:'Syne',sans-serif;">$███.██M</div>
-            <div class="dc-locked-hint">🔒 Enter wallet to unlock data</div>
+            <div class="dc-value-masked" style="font-family:'Syne',sans-serif;">$125.45M</div>
+            <div class="dc-locked-hint">Enter wallet to unlock data</div>
             <div class="dc-skeleton-row">
               <span style="display:flex;align-items:center;gap:8px;"><span class="skel skel-dot"
                   style="background:#627EEA;animation:none;"></span><span class="skel skel-label"></span></span>
@@ -3218,7 +3789,7 @@
             <div class="dc-prism">
               <div class="dc-prism-header">
                 <span class="dc-prism-label">PRISM Health</span>
-                <span class="dc-prism-score-masked">██/100</span>
+                <span class="dc-prism-score-masked">75/100</span>
               </div>
               <div class="dc-prism-bar">
                 <div class="dc-prism-fill" id="heroPrismFill"></div>
@@ -3686,7 +4257,7 @@
         <div class="search-row">
           <input type="text" class="search-input" id="appWalletInput"
             placeholder="Enter wallet address (ETH, Polygon, BSC, SOL)" spellcheck="false" autocomplete="off" />
-          <button class="btn-search magnetic" onclick="searchWallet()">🔍 Search</button>
+          <button class="btn-search magnetic" onclick="searchWallet()">Search</button>
         </div>
         <div class="search-hint">Supports: Ethereum • Polygon • BNB Chain • Solana</div>
       </div>
@@ -3699,8 +4270,10 @@
         </div>
         <div class="tab" onclick="switchTab('transactions',this)">Transactions <span class="tab-badge"
             id="txTabBadge">10</span></div>
-        <div class="tab" onclick="switchTab('advisor',this)">🧠 AI Advisor</div>
-        <div class="tab" onclick="switchTab('statemachine',this)">⬡ State Machine</div>
+        <div class="tab" onclick="switchTab('statemachine',this)">State Machine</div>
+        <div class="tab" onclick="switchTab('resilience',this)">Resilience</div>
+        <div class="tab" onclick="switchTab('routersim',this)">Router Sim</div>
+        <div class="tab" onclick="switchTab('advisor',this)">AI Advisor</div>
       </div>
 
       <!-- OVERVIEW TAB -->
@@ -3737,11 +4310,9 @@
             style="background:var(--yellow-light);color:var(--yellow);border:1px solid rgba(255,179,0,.3);">MEDIUM RISK
           </div>
         </div>
-        <div class="mini-prism-note">
-          <strong>Mini-PRISM Demo:</strong> This dashboard aggregates your financial state independently of any single
-          chain — mirroring SOVEREIGN's state-execution separation architecture. Assets tracked across <strong>3
-            execution environments</strong>.
-        </div>
+        <!-- METRICS GRID: CREDEX · VERTEX · ZK · LUMINA – always rendered by renderOverview() -->
+        <div id="metricsGrid" style="margin-bottom:1.75rem;"></div>
+
         <div class="charts-row">
           <div class="app-3d-card chart-card" id="chartCard1">
             <h4>Chain Distribution</h4>
@@ -3820,9 +4391,7 @@
             </div>
             <span class="chain-bar-score">100</span>
           </div>
-          <div class="prism-arch-note"><strong>PRISM Architecture:</strong> In a full SOVEREIGN deployment, this score
-            drives automatic execution routing — portfolios scoring below 70 trigger proactive state migration to
-            healthier chains.</div>
+
         </div>
         <div class="chain-section-title">Chain Breakdown</div>
         <div class="chain-grid" id="chainGrid">
@@ -3984,16 +4553,27 @@
           </div>
         </div>
       </div>
+
+      <!-- RESILIENCE DASHBOARD TAB -->
+      <div class="tab-content" id="tab-resilience">
+        <div id="resilienceContainer">
+          <div style="padding:3rem;text-align:center;color:var(--text-muted);">
+            Search a wallet to view the PRISM Resilience Dashboard
+          </div>
+        </div>
+      </div>
+
+      <!-- EXECUTION ROUTER SIMULATION TAB -->
+      <div class="tab-content" id="tab-routersim">
+        <div id="routerSimContainer">
+          <!-- Populated by initRouterSim() -->
+          <div style="padding:3rem;text-align:center;color:var(--text-muted);">Loading Router Simulation…</div>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
-    /* ===== CUSTOM CURSOR ===== */
-    var cursor = document.getElementById('cursor'), cursorRing = document.getElementById('cursor-ring');
-    var mx = window.innerWidth / 2, my = window.innerHeight / 2, rx = window.innerWidth / 2, ry = window.innerHeight / 2;
-    document.addEventListener('mousemove', function (e) { mx = e.clientX; my = e.clientY; cursor.style.left = mx + 'px'; cursor.style.top = my + 'px'; });
-    function animateCursorRing() { rx += (mx - rx) * .12; ry += (my - ry) * .12; cursorRing.style.left = rx + 'px'; cursorRing.style.top = ry + 'px'; requestAnimationFrame(animateCursorRing); }
-    animateCursorRing();
 
     /* ===== SMOOTH SCROLL ===== */
     function smoothScrollTo(id) { var el = document.getElementById(id); if (el) { var top = el.getBoundingClientRect().top + window.pageYOffset - 68; window.scrollTo({ top: top, behavior: 'smooth' }); } }
@@ -4002,6 +4582,11 @@
     (function () {
       var canvas = document.getElementById('particleCanvas'), ctx = canvas.getContext('2d'), w, h, particles = [];
       var COLORS = ['#3B7BFF', '#00D4FF', '#8B5CF6', '#00E5A0'], COUNT = 80, MAX_DIST = 120;
+      var mx = -1000, my = -1000;
+      document.addEventListener('mousemove', function (e) {
+        mx = e.clientX;
+        my = e.clientY;
+      });
       function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
       resize(); window.addEventListener('resize', resize);
       function Particle() { this.x = Math.random() * w; this.y = Math.random() * h; this.vx = (Math.random() - .5) * .4; this.vy = (Math.random() - .5) * .4; this.r = Math.random() * 1.5 + .5; this.color = COLORS[Math.floor(Math.random() * COLORS.length)]; this.alpha = Math.random() * .25 + .08; }
@@ -4220,9 +4805,17 @@
 
     /* ===== BACKEND CONFIG ===== */
     var API_BASE = 'http://localhost:8000';
-    var CHAIN_COLORS = { ethereum: '#627EEA', polygon: '#8247E5', bsc: '#F3BA2F', solana: '#9945FF' };
-    var CHAIN_LABELS = { ethereum: 'Ethereum', polygon: 'Polygon', bsc: 'BNB Chain', solana: 'Solana' };
+    var CHAIN_COLORS = { ethereum: '#627EEA', polygon: '#8247E5', bsc: '#F3BA2F', solana: '#9945FF', arbitrum: '#28A0F0' };
+    var CHAIN_LABELS = { ethereum: 'Ethereum', polygon: 'Polygon', bsc: 'BNB Chain', solana: 'Solana', arbitrum: 'Arbitrum' };
     var _currentWallet = '', _portfolioData = null, _allTokens = [], _aiHistory = [];
+
+    function getChainLabel(chain) {
+      return CHAIN_LABELS[chain] || (chain ? chain.charAt(0).toUpperCase() + chain.slice(1) : '?');
+    }
+    function getChainIcon(chain) {
+      var icons = { ethereum: 'Ξ', polygon: '⬡', bsc: 'B', solana: '◎', arbitrum: 'A' };
+      return icons[chain] || '●';
+    }
 
     function fillWallet(addr) { document.getElementById('walletInput').value = addr; }
     function analyzeWallet() {
@@ -4263,6 +4856,11 @@
       fetch(API_BASE + '/portfolio/' + encodeURIComponent(wallet))
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(data) {
+          if (data && data.nfts) {
+            data.nfts = data.nfts.filter(function (nft) {
+              return !!(nft.image || nft.image_url || (nft.metadata && nft.metadata.image) || nft.collection_logo);
+            });
+          }
           _portfolioData = data;
           _allTokens = data.tokens || [];
           renderOverview(data);
@@ -4419,7 +5017,7 @@
       fetch(API_BASE + '/transactions/' + encodeURIComponent(wallet))
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function (data) { renderTransactions(data.transactions || []); })
-        .catch(function (err) { document.getElementById('txList').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--red);">⚠️ ' + err.message + '</div>'; });
+        .catch(function (err) { document.getElementById('txList').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--red);">Error: ' + err.message + '</div>'; });
     }
 
     function renderOverview(data) {
@@ -4469,9 +5067,10 @@
       });
       buildDonut(chains); buildTokenBars(tokens);
       if (data.state_machine) renderStateMachine(data.state_machine);
+      renderResilienceDashboard(data);
 
       var cards = [
-        { key:'credit_score', id:'credexCard', before:'prismAppCard',
+        { key:'credit_score', id:'credexCard',
           render: function(d) {
             var g = {A:'#00E5A0',B:'#3B7BFF',C:'#FFB300',D:'#FF4545'}
             return '<div style="display:flex;justify-content:space-between;align-items:center;">'
@@ -4491,7 +5090,7 @@
             +'background:linear-gradient(135deg,rgba(59,123,255,0.06),rgba(0,212,255,0.03));'
             +'border:1.5px solid rgba(0,212,255,0.2);'
         },
-        { key:'vertex', id:'vertexCard', before:'riskCard', after:true,
+        { key:'vertex', id:'vertexCard',
           render: function(d) {
             var ok = d.status==='CLEAR'
             var c  = ok?'#00E5A0':'#FF4545'
@@ -4507,9 +5106,10 @@
               +'font-size:11px;font-weight:700;padding:4px 14px;border-radius:9999px;'
               +'font-family:var(--mono);">'+d.status+'</span></div>'
           },
-          style:'padding:1rem 1.5rem;margin-bottom:1.75rem;border-radius:12px;'
+          style:'padding:1rem 1.5rem;margin-bottom:0;border-radius:12px;'
+            +'background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.15);'
         },
-        { key:'zk_proof', id:'zkCard', before:'prismAppCard', after:true,
+        { key:'zk_proof', id:'zkCard',
           render: function(d) {
             return '<div style="display:flex;justify-content:space-between;'
               +'align-items:center;margin-bottom:8px;">'
@@ -4527,50 +5127,122 @@
           style:'padding:1rem 1.5rem;margin-bottom:1.75rem;border-radius:12px;'
             +'background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);'
         },
-        { key:'lumina', id:'luminaCard', before:'chain-section-title', bySel:true,
+        { key:'lumina', id:'luminaCard',
           render: function(d) {
-            if (!d.chains||!d.chains.length) return ''
-            var maxT = Math.max.apply(null,d.chains.map(function(x){return x.tvl||0}))||1
+            var chains = (d && d.chains && d.chains.length) ? d.chains
+              : [{name:'Ethereum',tvl:45e9,label:'$45.0B TVL'},{name:'BSC',tvl:6e9,label:'$6.0B TVL'},
+                 {name:'Polygon',tvl:1.2e9,label:'$1.2B TVL'},{name:'Solana',tvl:7e9,label:'$7.0B TVL'}];
+            var isLive = d && d.chains && d.chains.length;
+            var maxT = Math.max.apply(null,chains.map(function(x){return x.tvl||0}))||1;
             var clrs = {Ethereum:'#627EEA',Polygon:'#8247E5',BSC:'#F3BA2F',
-                        Solana:'#9945FF',Arbitrum:'#28A0F0',Base:'#0052FF'}
-            return '<div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);'
-              +'letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;">'
-              +'LUMINA · Liquidity Intelligence <span style="float:right;">via DeFiLlama</span></div>'
-              +d.chains.map(function(c){
-                var pct=Math.max((c.tvl/maxT)*100,2).toFixed(1)
-                var col=clrs[c.name]||'#3B7BFF'
-                return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
-                  +'<span style="width:70px;font-size:11px;color:var(--text-muted);'
+                        Solana:'#9945FF',Arbitrum:'#28A0F0',Base:'#0052FF'};
+            return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">'
+              +'<div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);'
+              +'letter-spacing:2px;text-transform:uppercase;">LUMINA \u00b7 TVL per Chain</div>'
+              +'<span style="font-size:10px;font-family:var(--mono);color:'+(isLive?'var(--green)':'var(--text-muted)')+';">'
+              +(isLive?'\u25cf LIVE via DeFiLlama':'\u25cb Simulated')+' </span></div>'
+              +chains.map(function(c){
+                var pct=Math.max((c.tvl/maxT)*100,2).toFixed(1);
+                var col=clrs[c.name]||'#3B7BFF';
+                return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+                  +'<span style="width:72px;font-size:11px;color:var(--text-muted);'
                   +'text-align:right;font-family:var(--mono);">'+c.name+'</span>'
-                  +'<div style="flex:1;height:20px;background:rgba(255,255,255,0.04);'
-                  +'border-radius:4px;overflow:hidden;border:1px solid var(--border);">'
-                  +'<div style="width:'+pct+'%;height:100%;background:'+col+';border-radius:4px;"></div></div>'
-                  +'<span style="width:65px;font-size:11px;font-family:var(--mono);'
+                  +'<div style="flex:1;height:22px;background:rgba(255,255,255,0.04);'
+                  +'border-radius:5px;overflow:hidden;border:1px solid var(--border);">'
+                  +'<div style="width:'+pct+'%;height:100%;background:'+col
+                  +';border-radius:5px;transition:width .6s ease;"></div></div>'
+                  +'<span style="width:70px;font-size:11px;font-family:var(--mono);'
                   +'color:var(--text-secondary);font-weight:600;">'+c.label+'</span></div>'
-              }).join('')
+              }).join('');
+          },
+          style:'padding:1.5rem;margin-bottom:0;border-radius:14px;'
+            +'background:var(--navy-card);border:1px solid var(--border);'
+        },
+        { key:'router', id:'routerCard',
+          render: function(d) {
+            if (!d.chain_rankings || !d.chain_rankings.length) return '';
+            var clrs = {ethereum:'#627EEA', polygon:'#8247E5', bsc:'#F3BA2F', solana:'#9945FF'};
+            var names = {ethereum:'Ethereum', polygon:'Polygon', bsc:'BNB Chain', solana:'Solana'};
+            
+            var rankingsHtml = d.chain_rankings.map(function(r) {
+              var col = clrs[r.chain] || '#3B7BFF';
+              var name = names[r.chain] || r.chain;
+              return '<div style="margin-bottom:12px;">'
+                +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">'
+                +'<span style="color:#fff;font-weight:600;">' + name + '</span>'
+                +'<span style="font-family:var(--mono);color:' + col + ';font-weight:700;">Score: ' + r.score.toFixed(1) + '</span>'
+                +'</div>'
+                +'<div style="height:6px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden;margin-bottom:4px;">'
+                +'<div style="width:' + r.score.toFixed(1) + '%;height:100%;background:' + col + ';border-radius:4px;"></div>'
+                +'</div>'
+                +'<div style="display:flex;gap:12px;font-size:10px;color:var(--text-muted);font-family:var(--mono);">'
+                +'<span>Health: ' + r.breakdown.chain_health.toFixed(0) + '%</span>'
+                +'<span>Alloc: ' + r.breakdown.portfolio_allocation.toFixed(0) + '%</span>'
+                +'<span>Liq: ' + r.breakdown.liquidity_score.toFixed(0) + '%</span>'
+                +'</div>'
+                +'</div>';
+            }).join('');
+
+            var bestChainLabel = names[d.best_chain] || d.best_chain || 'None';
+            var bestChainColor = clrs[d.best_chain] || '#3B7BFF';
+
+            return '<div style="display:flex;flex-direction:column;gap:12px;">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<div>'
+              +'<div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">'
+              +'PRISM · Execution Router</div>'
+              +'<div style="font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;color:#fff;">'
+              +'Best Chain: <span style="color:' + bestChainColor + ';">' + bestChainLabel + '</span></div>'
+              +'</div>'
+              +'<span style="background:rgba(59,123,255,0.15);color:#00D4FF;border:1px solid rgba(59,123,255,0.3);font-size:10px;font-weight:700;padding:4px 12px;border-radius:9999px;font-family:var(--mono);">'
+              +'ROUTER ACTIVE</span>'
+              +'</div>'
+              +'<div style="font-size:12px;color:var(--text-secondary);background:rgba(59,123,255,0.04);border:1px solid rgba(59,123,255,0.1);padding:10px 14px;border-radius:8px;line-height:1.4;">'
+              + d.recommendation
+              +'</div>'
+              +'<div style="margin-top:4px;">'
+              +'<div style="font-size:10px;font-family:var(--mono);color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:1px;">Execution Rankings</div>'
+              + rankingsHtml
+              +'</div>'
+              +'</div>';
           },
           style:'padding:1.5rem;margin-bottom:1.75rem;border-radius:14px;'
-            +'background:var(--navy-card);border:1px solid var(--border);'
+            +'background:linear-gradient(135deg,rgba(59,123,255,0.06),rgba(0,212,255,0.03));'
+            +'border:1.5px solid rgba(59,123,255,0.2);'
         }
       ]
 
-      cards.forEach(function(cfg) {
-        if (!data[cfg.key]) return
-        if (document.getElementById(cfg.id)) return
-        var html = cfg.render(data[cfg.key])
-        if (!html) return
-        var div = document.createElement('div')
-        div.id = cfg.id
-        div.className = 'app-3d-card'
-        div.style.cssText = cfg.style
-        div.innerHTML = html
-        var anchor = cfg.bySel
-          ? document.querySelector('.'+cfg.before)
-          : document.getElementById(cfg.before)
-        if (!anchor) return
-        if (cfg.after) anchor.parentNode.insertBefore(div, anchor.nextSibling)
-        else anchor.parentNode.insertBefore(div, anchor)
-      })
+      // Render all metric cards into the fixed metricsGrid container
+      var grid = document.getElementById('metricsGrid');
+      if (grid) {
+        // Build card HTMLs
+        var cardItems = [];
+        cards.forEach(function(cfg) {
+          if (!data[cfg.key]) return;
+          var html = cfg.render(data[cfg.key]);
+          if (!html) return;
+          cardItems.push({ id: cfg.id, style: cfg.style, html: html });
+        });
+
+        if (cardItems.length === 0) { grid.innerHTML = ''; return; }
+
+        // CREDEX + VERTEX: side by side in a 2-col grid
+        var top2 = cardItems.slice(0, 2);
+        var rest  = cardItems.slice(2);
+
+        var rowHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">';
+        top2.forEach(function(item) {
+          rowHtml += '<div id="' + item.id + '" class="app-3d-card" style="' + item.style + '">' + item.html + '</div>';
+        });
+        rowHtml += '</div>';
+
+        var bottomHtml = '';
+        rest.forEach(function(item) {
+          bottomHtml += '<div id="' + item.id + '" class="app-3d-card" style="' + item.style + ';margin-bottom:1rem;">' + item.html + '</div>';
+        });
+
+        grid.innerHTML = rowHtml + bottomHtml;
+      }
       setTimeout(init3DCards, 100)
     }
 
@@ -4628,19 +5300,35 @@
     function filterTokens() { sortAndDisplayTokens(); }
     function sortTokens() { sortAndDisplayTokens(); }
 
+    function updateNftCount() {
+      var visibleCount = Array.from(document.querySelectorAll('.nft-card')).filter(function(card) {
+        return card.style.display !== 'none';
+      }).length;
+      var cLabel = visibleCount + ' collectible' + (visibleCount !== 1 ? 's' : '');
+      var badge = document.getElementById('nftCountBadge');
+      if (badge) badge.textContent = '(' + cLabel + ')';
+      var ntb = document.getElementById('nftTabBadge');
+      if (ntb) ntb.textContent = visibleCount;
+      var tn = document.getElementById('mNFTs');
+      if (tn) tn.textContent = visibleCount;
+    }
+
     function renderNFTs(nfts) {
-      document.getElementById('nftCountBadge').textContent = '(' + nfts.length + ' collectibles)';
+      var filteredNfts = nfts.filter(function (nft) {
+        var imgSrc = nft.image || nft.image_url || (nft.metadata && nft.metadata.image) || nft.collection_logo || '';
+        return !!imgSrc;
+      });
+      var badge = document.getElementById('nftCountBadge');
+      if (badge) badge.textContent = '(' + filteredNfts.length + ' collectibles)';
       var grid = document.getElementById('nftGrid'); if (!grid) return;
-      if (!nfts.length) { grid.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted);grid-column:1/-1;">No NFTs found for this wallet.</div>'; return; }
-      var CHAIN_ICONS = { ethereum: 'Ξ', polygon: '⬡', bsc: 'B', solana: '◎' };
-      grid.innerHTML = nfts.map(function (nft) {
-        var color = CHAIN_COLORS[nft.chain] || '#888', icon = CHAIN_ICONS[nft.chain] || '?';
+      if (!filteredNfts.length) { grid.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted);grid-column:1/-1;">No NFTs found for this wallet.</div>'; return; }
+      grid.innerHTML = filteredNfts.map(function (nft) {
+        var color = CHAIN_COLORS[nft.chain] || '#888';
         var imgSrc = nft.image || nft.image_url || (nft.metadata && nft.metadata.image) || nft.collection_logo || '';
         var name = nft.name || (nft.metadata && nft.metadata.name) || 'Unnamed NFT';
         var collection = nft.symbol || nft.collection_name || nft.contract_type || 'NFT';
         return '<div class="nft-card">'
-          + (imgSrc ? '<img src="' + escHtml(imgSrc) + '" alt="' + escHtml(name) + '" style="width:100%;height:155px;object-fit:cover;background:var(--navy-mid);" onerror="this.outerHTML=\'<div class=nft-img>' + icon + '</div>\'" referrerpolicy="no-referrer"/>'
-            : '<div class="nft-img">' + icon + '</div>')
+          + '<img src="' + escHtml(imgSrc) + '" alt="' + escHtml(name) + '" style="width:100%;height:155px;object-fit:cover;background:var(--navy-mid);" onerror="this.parentElement.style.display=\'none\'; updateNftCount();" referrerpolicy="no-referrer"/>'
           + '<div style="padding:14px;"><div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(name) + '</div>'
           + '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:var(--text-muted);">' + escHtml(collection) + '</span>'
           + '<span class="chain-pill" style="background:' + color + '18;color:' + color + ';">' + (CHAIN_LABELS[nft.chain] || nft.chain) + '</span></div></div></div>';
@@ -4864,14 +5552,14 @@
         })
         .catch(function (err) {
           removeTyping(typingId);
-          appendChatMsg('ai', '⚠️ Could not reach the AI backend. Make sure the FastAPI server is running at ' + API_BASE + '.\n\nError: ' + err.message);
+          appendChatMsg('ai', 'Could not reach the AI backend. Make sure the FastAPI server is running at ' + API_BASE + '.\n\nError: ' + err.message);
         });
     }
 
     function appendChatMsg(role, text) {
       var box = document.getElementById('chatMessages'); if (!box) return;
       var div = document.createElement('div'); div.className = role === 'ai' ? 'chat-ai-msg' : 'chat-user-msg';
-      var avatar = '<div class="' + (role === 'ai' ? 'chat-avatar-ai' : 'chat-avatar-user') + '">' + (role === 'ai' ? '🧠' : '👤') + '</div>';
+      var avatar = '<div class="' + (role === 'ai' ? 'chat-avatar-ai' : 'chat-avatar-user') + '">' + (role === 'ai' ? '<span style="font-size:10px;font-weight:700;">AI</span>' : '<span style="font-size:10px;font-weight:700;">U</span>') + '</div>';
       var bubble = '<div class="' + (role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user') + '">' + escHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</div>';
       div.innerHTML = avatar + bubble; box.appendChild(div); box.scrollTop = box.scrollHeight;
     }
@@ -4880,7 +5568,7 @@
       var box = document.getElementById('chatMessages');
       var id = 'typing-' + Date.now();
       var div = document.createElement('div'); div.className = 'chat-ai-msg'; div.id = id;
-      div.innerHTML = '<div class="chat-avatar-ai">🧠</div><div class="chat-bubble-ai"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+      div.innerHTML = '<div class="chat-avatar-ai"><span style="font-size:10px;font-weight:700;">AI</span></div><div class="chat-bubble-ai"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
       box.appendChild(div); box.scrollTop = box.scrollHeight; return id;
     }
 
@@ -4930,10 +5618,857 @@
       var body = document.querySelector('.app-body'); if (!body) return;
       var banner = document.createElement('div');
       banner.style.cssText = 'background:var(--red-light);border:1px solid rgba(255,69,69,.3);border-radius:12px;padding:16px 20px;margin-bottom:1.75rem;color:var(--red);font-size:14px;';
-      banner.textContent = '⚠️ ' + msg + ' — Showing cached data if available.';
+      banner.textContent = msg + ' — Showing cached data if available.';
       body.insertBefore(banner, body.firstChild);
       setTimeout(function () { if (banner.parentNode) banner.remove(); }, 6000);
     }
+
+    /* ===== PRISM RESILIENCE DASHBOARD ENGINE ===== */
+    var _isSimulatingResilience = false;
+    var _simulatedPortfolioData = null;
+    var _simStep = 0;
+    var _simLogs = [];
+
+    function renderResilienceDashboard(data) {
+      var container = document.getElementById('resilienceContainer');
+      if (!container || !data) return;
+
+      var currentData = _isSimulatingResilience && _simulatedPortfolioData ? _simulatedPortfolioData : data;
+      
+      var total = currentData.total_value_usd || 0;
+      var risk = currentData.risk_score || 'UNKNOWN';
+      var prism = currentData.prism_health || {};
+      var currentScore = prism.overall_score || 0;
+      var stateMachine = currentData.state_machine || {};
+      
+      var pState = stateMachine.portfolio_state || 'STABLE';
+      var pStateLabel = stateMachine.portfolio_state_label || 'Stable';
+      var pStateColor = stateMachine.portfolio_state_color || '#22c55e';
+      var chainNodes = stateMachine.chain_nodes || {};
+      var migrationPlan = stateMachine.migration_plan || {};
+      var migrationStatus = stateMachine.migration_status || {};
+      
+      var nodes = Object.values(chainNodes);
+      var activeNodes = nodes.filter(function(n) { return n.value_usd > 0; });
+      var failedNodes = nodes.filter(function(n) { return n.state === 'FAILED' || n.health_score < 40; });
+      var degradedNodes = nodes.filter(function(n) { return n.state === 'DEGRADED' && n.health_score >= 40 && n.health_score < 70; });
+      var healthyNodes = nodes.filter(function(n) { return n.state === 'HEALTHY' || (n.health_score >= 70 && n.state !== 'FAILED'); });
+      
+      var isReady = currentScore >= 70;
+      
+      // Dial Stroke details
+      var scoreColor = '#22c55e';
+      var scoreBg = 'rgba(16,185,129,0.1)';
+      var scoreTextClass = 'text-green-400';
+      if (currentScore < 40) {
+        scoreColor = '#ef4444';
+        scoreBg = 'rgba(239,68,68,0.1)';
+        scoreTextClass = 'text-red-400';
+      } else if (currentScore < 70) {
+        scoreColor = '#f59e0b';
+        scoreBg = 'rgba(245,158,11,0.1)';
+        scoreTextClass = 'text-yellow-400';
+      }
+      
+      var dashoffset = 175.8 - (175.8 * currentScore) / 100;
+      
+      var html = '';
+      
+      // Simulation Banner
+      if (_isSimulatingResilience) {
+        html += '<div class="resilience-ribbon">'
+          +'<div>'
+          +'<div class="resilience-ribbon-text"><strong>PRISM Simulation Mode Active</strong></div>'
+          +'<div class="resilience-ribbon-sub">Displaying simulated post-migration states. No real wallet assets are affected.</div>'
+          +'</div>'
+          +'<button onclick="resetResilienceSimulation()" class="resilience-btn reset-btn" style="margin-top:0;width:auto;padding:8px 16px;">Reset Simulation</button>'
+          +'</div>';
+      }
+
+      // Title & Subtitle block
+      html += '<div class="overview-header" style="margin-bottom:1.5rem;">'
+        +'<div>'
+        +'<h2 class="overview-title" style="display:flex;align-items:center;gap:8px;">PRISM Resilience Center</h2>'
+        +'<p style="color:var(--text-secondary);font-size:13px;margin-top:4px;">Monitor, mitigate, and resolve multi-chain vulnerabilities in real time.</p>'
+        +'</div>'
+        +'<span class="wallet-badge" style="background:' + hex2rgba(pStateColor, 0.15) + ';color:' + pStateColor + ';border:1px solid ' + hex2rgba(pStateColor, 0.3) + '">'
+        +'STATE: ' + pStateLabel.toUpperCase() + '</span>'
+        +'</div>';
+        
+      // Grid of 4 cards
+      html += '<div class="resilience-grid">'
+        // Card 1: Score
+        +'<div class="resilience-metric-card">'
+        +'<div class="resilience-metric-top">'
+        +'<span class="resilience-metric-label">Resilience score</span>'
+        +'<div class="resilience-dial-container">'
+        +'<svg class="resilience-dial-svg" width="64" height="64" viewBox="0 0 64 64">'
+        +'<circle class="resilience-dial-bg" cx="32" cy="32" r="28"/>'
+        +'<circle class="resilience-dial-fill" cx="32" cy="32" r="28" stroke="' + scoreColor + '" stroke-dasharray="175.8" stroke-dashoffset="' + dashoffset + '"/>'
+        +'</svg>'
+        +'<div class="resilience-dial-text">' + currentScore + '%</div>'
+        +'</div>'
+        +'</div>'
+        +'<div class="resilience-metric-value" style="color:' + scoreColor + '">' + currentScore + '</div>'
+        +'<div class="resilience-metric-desc">Weighted network stability score</div>'
+        +'</div>'
+        // Card 2: Portfolio State
+        +'<div class="resilience-metric-card">'
+        +'<div class="resilience-metric-top">'
+        +'<span class="resilience-metric-label">Portfolio State</span>'
+        +'<div class="resilience-beacon" style="background:' + pStateColor + '">'
+        +'<span class="resilience-beacon-ping" style="background:' + pStateColor + '"></span>'
+        +'</div>'
+        +'</div>'
+        +'<div class="resilience-metric-value" style="color:#fff">' + pStateLabel + '</div>'
+        +'<div class="resilience-metric-desc">'
+        + (pState === 'CRITICAL' ? 'Dominant node failure. Urgent relocation required.' : 
+           pState === 'AT_RISK' ? 'Vulnerability detected on active chain.' : 
+           pState === 'STABLE' ? 'All active chains are secure and stable.' :
+           pState === 'RESILIENT' ? 'Shielded cross-chain state. Max survivability active.' :
+           'Active relocations in progress...')
+        +'</div>'
+        +'</div>'
+        // Card 3: Failed Nodes
+        +'<div class="resilience-metric-card">'
+        +'<div class="resilience-metric-top">'
+        +'<span class="resilience-metric-label">Failed Nodes</span>'
+        +'</div>'
+        +'<div class="resilience-metric-value" style="color:' + (failedNodes.length > 0 ? 'var(--red)' : 'var(--green)') + '">' + failedNodes.length + '<span style="font-size:14px;color:var(--text-muted);font-weight:normal;"> / ' + Object.keys(chainNodes).length + '</span></div>'
+        +'<div class="resilience-metric-desc">'
+        + (failedNodes.length > 0 ? failedNodes.map(function(n) { return getChainLabel(n.chain); }).join(', ') + ' unreachable' : 'All systems operating normally')
+        +'</div>'
+        +'</div>'
+        // Card 4: Migration Readiness
+        +'<div class="resilience-metric-card">'
+        +'<div class="resilience-metric-top">'
+        +'<span class="resilience-metric-label">Migration status</span>'
+        +'</div>'
+        +'<div class="resilience-metric-value" style="color:' + (migrationPlan.migration_needed ? 'var(--yellow)' : 'var(--green)') + '">'
+        + (migrationPlan.migration_needed ? 'PENDING' : 'SECURE')
+        +'</div>'
+        +'<div class="resilience-metric-desc">'
+        + (migrationPlan.migration_needed ? 'State rebalancing required to secure assets.' : 'Ledger matches all stability guidelines.')
+        +'</div>'
+        +'</div>'
+        +'</div>';
+        
+      // Middle Section: Left Relocation Engine, Right Node Details
+      html += '<div style="display:grid;grid-template-columns:2fr 1.2fr;gap:1.5rem;align-items:start;">'
+        
+        // Relocation Engine Card
+        +'<div class="app-3d-card" style="padding:1.5rem;background:var(--navy-card);border:1px solid var(--border);border-radius:16px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:10px;margin-bottom:15px;">'
+        +'<div><h3 style="font-size:15px;font-weight:700;color:#fff;">State Relocation Engine</h3>'
+        +'<p style="font-size:11px;color:var(--text-muted);margin-top:2px;">Automated cross-chain execution routing plans</p></div>'
+        +'<span style="font-family:var(--mono);font-size:10px;background:rgba(59,123,255,0.1);color:var(--blue);padding:2px 8px;border-radius:4px;font-weight:700;">PRISM-V1</span>'
+        +'</div>';
+        
+      if (migrationPlan.migration_needed) {
+        html += '<div style="margin-bottom:15px;background:rgba(255,179,0,0.06);border:1px solid rgba(255,179,0,0.2);border-radius:8px;padding:12px;display:flex;gap:10px;align-items:start;">'
+          +'<span style="font-size:16px;">⚡</span>'
+          +'<div><p style="font-size:12px;font-weight:700;color:var(--yellow);">Migration Plan Recommended</p>'
+          +'<p style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Relocate assets off vulnerable nodes to ensure 100% security.</p></div>'
+          +'</div>'
+          
+          +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">'
+          + migrationPlan.plans.map(function(plan) {
+              var isImmediate = plan.urgency === 'IMMEDIATE';
+              var urgencyColor = isImmediate ? 'var(--red)' : 'var(--yellow)';
+              var urgencyBg = isImmediate ? 'var(--red-light)' : 'var(--yellow-light)';
+              var val = parseFloat(plan.value_at_risk || 0);
+              
+              return '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.04);border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+                +'<div style="display:flex;align-items:center;gap:8px;">'
+                +'<span style="background:#111827;border:1px solid #1f2937;padding:3px 8px;border-radius:4px;font-size:11px;font-family:var(--mono);color:#fff;">' + getChainLabel(plan.from_chain) + '</span>'
+                +'<span style="color:var(--purple);font-weight:bold;">→</span>'
+                +'<span style="background:#111827;border:1px solid #1f2937;padding:3px 8px;border-radius:4px;font-size:11px;font-family:var(--mono);color:var(--green);">' + getChainLabel(plan.to_chain) + '</span>'
+                +'</div>'
+                +'<div style="text-align:right;">'
+                +'<div style="font-size:12px;font-family:var(--mono);font-weight:700;color:#fff;">' + formatUSD(val) + '</div>'
+                +'<span style="background:' + urgencyBg + ';color:' + urgencyColor + ';border:1px solid ' + urgencyColor + '30;font-size:9px;font-weight:800;padding:1px 6px;border-radius:4px;font-family:var(--mono);">' + plan.urgency + '</span>'
+                +'</div>'
+                +'</div>';
+            }).join('')
+          +'</div>'
+          
+          +'<div>';
+          
+        if (_simStep === 0) {
+          html += '<button onclick="runResilienceSimulation()" class="resilience-btn">⚡ Execute PRISM State Relocation</button>';
+        } else if (_simStep < 5) {
+          var stepText = 'Scanning ledger states...';
+          if (_simStep === 2) stepText = 'Querying LUMINA Liquidity Engine...';
+          else if (_simStep === 3) stepText = 'Relocating ledger assets...';
+          else if (_simStep === 4) stepText = 'Settling cryptographic proofs...';
+          
+          html += '<div style="background:#030712;border:1px solid #111827;padding:12px;border-radius:10px;">'
+            +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);margin-bottom:6px;">'
+            +'<span class="animate-pulse" style="display:flex;align-items:center;gap:6px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block;animation:pulse 1s infinite;"></span>' + stepText + '</span>'
+            +'<span style="font-family:var(--mono);">' + (_simStep * 20) + '%</span>'
+            +'</div>'
+            +'<div style="height:4px;background:#111827;border-radius:99px;overflow:hidden;">'
+            +'<div style="height:100%;width:' + (_simStep * 20) + '%;background:var(--blue);transition:width 0.5s ease-out;border-radius:99px;"></div>'
+            +'</div>'
+            +'</div>';
+        } else {
+          html += '<div style="background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.2);border-radius:10px;padding:12px;text-align:center;animation:fadeIn 0.3s;">'
+            +'<p style="color:var(--green);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;"><span>✓</span> State Relocation Succeeded</p>'
+            +'<p style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Vulnerable balances relocated to secure alternative nodes.</p>'
+            +'<button onclick="resetResilienceSimulation()" class="resilience-btn reset-btn" style="width:auto;padding:6px 12px;font-size:11px;">Reset Simulation</button>'
+            +'</div>';
+        }
+        
+        html += '</div>';
+      } else {
+        html += '<div style="background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.15);border-radius:10px;padding:24px;text-align:center;">'
+          +'<div style="width:36px;height:36px;border-radius:50%;background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="color:var(--green);font-weight:bold;">✓</span></div>'
+          +'<p style="color:var(--green);font-weight:700;font-size:13px;">Resilience Score Satisfied</p>'
+          +'<p style="font-size:11.5px;color:var(--text-secondary);margin-top:4px;max-width:300px;margin-left:auto;margin-right:auto;line-height:1.4;">No relocation operations recommended. All nodes meet safety parameters.</p>'
+          +'</div>';
+      }
+      
+      // Console Output Log inside Relocation Engine
+      if (_isSimulatingResilience) {
+        html += '<div class="resilience-console">'
+          +'<div class="resilience-console-title"><span>Relocation Output Log</span><span>Step ' + _simStep + '/5</span></div>'
+          + _simLogs.map(function(log) {
+              return '<div class="resilience-console-log">' + escHtml(log) + '</div>';
+            }).join('')
+          +'<div id="resilienceConsoleEnd"></div>'
+          +'</div>';
+      }
+      
+      html += '</div>'; // End Relocation Engine Card
+      
+      // Node Health Indicators List
+      html += '<div class="app-3d-card" style="padding:1.5rem;background:var(--navy-card);border:1px solid var(--border);border-radius:16px;">'
+        +'<h3 style="font-size:15px;font-weight:700;color:#fff;margin-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:10px;">Node Diagnostics</h3>'
+        +'<div style="display:flex;flex-direction:column;gap:12px;">'
+        + Object.keys(chainNodes).map(function(cKey) {
+            var node = chainNodes[cKey];
+            var nc = node.state_color || '#2d4a6e';
+            var val = parseFloat(node.value_usd || 0);
+            
+            return '<div style="background:rgba(0,0,0,0.15);border:1px solid ' + hex2rgba(nc, 0.2) + ';border-radius:8px;padding:12px;">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+              +'<div style="display:flex;align-items:center;gap:6px;">'
+              +'<span style="font-size:14px;color:' + nc + ';font-weight:bold;">' + getChainIcon(cKey) + '</span>'
+              +'<span style="font-size:11px;font-weight:700;color:#fff;">' + getChainLabel(cKey) + '</span>'
+              +'</div>'
+              +'<span style="background:' + hex2rgba(nc, 0.1) + ';color:' + nc + ';border:1px solid ' + hex2rgba(nc, 0.3) + ';font-size:8px;font-weight:800;padding:1px 6px;border-radius:9999px;font-family:var(--mono);text-transform:uppercase;">' + node.state + '</span>'
+              +'</div>'
+              
+              +'<div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-secondary);font-family:var(--mono);margin-bottom:8px;">'
+              +'<span>Value: ' + formatUSD(val) + '</span>'
+              +'<span>' + node.percentage.toFixed(1) + '%</span>'
+              +'</div>'
+              
+              +'<div style="margin-top:6px;">'
+              +'<div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-muted);margin-bottom:3px;">'
+              +'<span>Stability index</span>'
+              +'<span style="color:' + nc + ';font-weight:700;">' + node.health_score + '/100</span>'
+              +'</div>'
+              +'<div style="height:3px;background:#111827;border-radius:99px;overflow:hidden;">'
+              +'<div style="height:100%;width:' + node.health_score + '%;background:' + nc + ';border-radius:99px;"></div>'
+              +'</div>'
+              +'</div>'
+              
+              + (node.failure_reason ? '<p style="margin-top:8px;font-size:10px;color:var(--yellow);background:rgba(255,179,0,0.05);border:1px solid rgba(255,179,0,0.15);padding:6px;border-radius:4px;line-height:1.3;">Warning: ' + node.failure_reason + '</p>' : '')
+              +'</div>';
+          }).join('')
+        +'</div>'
+        +'</div>'; // End Node Diagnostics List
+        
+      html += '</div>'; // End Middle Section
+      
+      // Bottom explanatory banner removed
+
+      container.innerHTML = html;
+      
+      // Scroll console to bottom if it is present
+      var consoleEl = document.querySelector('.resilience-console');
+      if (consoleEl) {
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+    }
+
+    function runResilienceSimulation() {
+      _isSimulatingResilience = true;
+      _simStep = 1;
+      _simulatedPortfolioData = JSON.parse(JSON.stringify(_portfolioData));
+      
+      _simLogs = [
+        "[INFO] INITIATING PRISM SENTINEL STATE ANALYSIS...",
+        "[INFO] Current Resilience Index: " + _portfolioData.prism_health.overall_score + "/100",
+        "[WARNING] Checking active security alerts and degraded nodes..."
+      ];
+      
+      renderResilienceDashboard(_portfolioData);
+      
+      var targetChain = (_portfolioData.state_machine && _portfolioData.state_machine.migration_status && _portfolioData.state_machine.migration_status.best_alternative) || 'ethereum';
+      var targetLabel = CHAIN_LABELS[targetChain] || targetChain;
+      
+      setTimeout(function() {
+        _simStep = 2;
+        _simLogs.push("[INFO] Sentinels active. Failed/Degraded chains identified.");
+        _simLogs.push("[INFO] Querying LUMINA Liquidity Engine for routing alternatives...");
+        _simLogs.push("[INFO] Destination node identified: " + targetLabel);
+        _simLogs.push("[SECURE] Securing cross-chain relay bridges and cryptographic proofs...");
+        renderResilienceDashboard(_portfolioData);
+      }, 1000);
+      
+      setTimeout(function() {
+        _simStep = 3;
+        _simLogs.push("[BRIDGE] Bridges locked. Relocating state hashes...");
+        
+        var nextNodes = _simulatedPortfolioData.state_machine.chain_nodes;
+        var valueToMigrate = 0;
+        
+        Object.keys(nextNodes).forEach(function(c) {
+          var node = nextNodes[c];
+          if (node.state === 'FAILED' || node.health_score < 40) {
+            valueToMigrate += node.value_usd;
+            _simLogs.push("[MIGRATE] Relocating " + formatUSD(node.value_usd) + " (" + node.percentage.toFixed(1) + "%) from " + getChainLabel(node.chain) + "...");
+            node.value_usd = 0;
+            node.percentage = 0;
+            node.state = 'MIGRATING';
+            node.state_color = '#3b82f6';
+            node.failure_reason = 'Assets relocated to secure node';
+          }
+        });
+        
+        if (nextNodes[targetChain]) {
+          nextNodes[targetChain].value_usd += valueToMigrate;
+          nextNodes[targetChain].state = 'HEALTHY';
+          nextNodes[targetChain].state_color = '#22c55e';
+        }
+        
+        var totalVal = Object.values(nextNodes).reduce(function(acc, curr) { return acc + curr.value_usd; }, 0);
+        Object.keys(nextNodes).forEach(function(c) {
+          var node = nextNodes[c];
+          node.percentage = totalVal > 0 ? (node.value_usd / totalVal) * 100 : 0;
+        });
+        
+        _simLogs.push("[ROUTER] Running smart router contract execution...");
+        
+        _simulatedPortfolioData.state_machine.portfolio_state = 'MIGRATING';
+        _simulatedPortfolioData.state_machine.portfolio_state_label = 'Migrating';
+        _simulatedPortfolioData.state_machine.portfolio_state_color = '#3b82f6';
+        
+        renderResilienceDashboard(_portfolioData);
+      }, 2500);
+      
+      setTimeout(function() {
+        _simStep = 4;
+        _simLogs.push("[TX] Relocation transactions confirmed on-chain.");
+        _simLogs.push("[PROOF] State proofs generated. Finalizing ledger settlement...");
+        _simLogs.push("[INFO] Recalculating portfolio health indicators...");
+        
+        var nextNodes = _simulatedPortfolioData.state_machine.chain_nodes;
+        Object.keys(nextNodes).forEach(function(c) {
+          var node = nextNodes[c];
+          if (node.state === 'MIGRATING') {
+            node.state = 'UNKNOWN';
+            node.state_color = '#6b7280';
+          }
+        });
+        
+        _simulatedPortfolioData.prism_health.overall_score = 95;
+        _simulatedPortfolioData.state_machine.portfolio_state = 'RESILIENT';
+        _simulatedPortfolioData.state_machine.portfolio_state_label = 'Resilient';
+        _simulatedPortfolioData.state_machine.portfolio_state_color = '#00d4aa';
+        _simulatedPortfolioData.state_machine.migration_plan.migration_needed = false;
+        _simulatedPortfolioData.state_machine.migration_plan.plans = [];
+        _simulatedPortfolioData.prism_health.recommendation = 'Portfolio fully stabilized post-relocation.';
+        
+        renderResilienceDashboard(_portfolioData);
+      }, 4000);
+      
+      setTimeout(function() {
+        _simStep = 5;
+        _simLogs.push("[SUCCESS] STATE RELOCATION COMPLETE.");
+        _simLogs.push("[SUCCESS] New Portfolio State: RESILIENT (Score: 95/100)");
+        _simLogs.push("[SUCCESS] All assets secured. PRISM Safeguards at full capacity.");
+        renderResilienceDashboard(_portfolioData);
+      }, 5000);
+    }
+    
+    function resetResilienceSimulation() {
+      _isSimulatingResilience = false;
+      _simStep = 0;
+      _simLogs = [];
+      _simulatedPortfolioData = null;
+      renderResilienceDashboard(_portfolioData);
+    }
+
+    function hex2rgba(hex, a) {
+      if (!hex) return 'rgba(107, 114, 128, ' + a + ')';
+      var c = hex.replace('#','');
+      var r = parseInt(c.slice(0,2),16);
+      var g = parseInt(c.slice(2,4),16);
+      var b = parseInt(c.slice(4,6),16);
+      return 'rgba('+r+','+g+','+b+','+a+')';
+    }
+
+    /* ===== URL PARAM ===== */
+    (function () {
+      var params = new URLSearchParams(window.location.search), w = params.get('wallet');
+      if (w) launchDashboard(w);
+    })();
+
+    /* =====================================================================
+       EXECUTION ROUTER SIMULATION — FULLY SELF-CONTAINED
+       No backend required. Interactive chain failure + migration demo.
+    ===================================================================== */
+
+    /* ── Simulation State ── */
+    var _rs = {
+      phase: 'idle',   // idle | failure | routing | migrating | recovered
+      failedChain: null,
+      routeTarget: null,
+      migrationStep: 0,
+      logs: [],
+      stepTimer: null,
+      chains: {
+        ethereum: { name:'Ethereum', icon:'Ξ',  color:'#627EEA', health:90,  value:17040.27,   pct:0,    state:'HEALTHY',  failed:false },
+        polygon:  { name:'Polygon',  icon:'⬡',  color:'#8247E5', health:100, value:6724.22,    pct:0,    state:'HEALTHY',  failed:false },
+        bsc:      { name:'BNB Chain',icon:'B',  color:'#F3BA2F', health:45,  value:500110000,  pct:99.9, state:'DEGRADED', failed:false },
+        solana:   { name:'Solana',   icon:'◎',  color:'#9945FF', health:100, value:0,          pct:0,    state:'HEALTHY',  failed:false }
+      },
+      prismScore: 72
+    };
+
+    var _RS_STEPS = [
+      { label:'Detecting chain failure signal',    icon:'Step 1', key:'detect' },
+      { label:'Querying PRISM Sentinel Network',   icon:'Step 2', key:'sentinel' },
+      { label:'Computing Execution Router scores', icon:'Step 3', key:'score' },
+      { label:'Selecting optimal target chain',    icon:'Step 4', key:'select' },
+      { label:'Initiating cross-chain migration',  icon:'Step 5', key:'migrate' },
+      { label:'Verifying ZK state proof',          icon:'Step 6', key:'zkproof' },
+      { label:'Confirming asset relocation',       icon:'Step 7', key:'confirm' }
+    ];
+
+    function _rsTotalValue() {
+      return Object.values(_rs.chains).reduce(function(a,c){ return a + c.value; }, 0);
+    }
+
+    function _rsRecomputePct() {
+      var total = _rsTotalValue();
+      Object.keys(_rs.chains).forEach(function(k){
+        _rs.chains[k].pct = total > 0 ? (_rs.chains[k].value / total * 100) : 0;
+      });
+    }
+
+    function _rsRouterScore(chainKey) {
+      var c = _rs.chains[chainKey];
+      if (c.failed || c.state === 'FAILED') return 0;
+      var liquidity = chainKey === 'ethereum' ? 90 : chainKey === 'solana' ? 85 : chainKey === 'polygon' ? 80 : 55;
+      return (c.health * 0.5 + liquidity * 0.3 + (100 - c.pct) * 0.2);
+    }
+
+    function _rsBestTarget() {
+      var best = null, bestScore = -1;
+      Object.keys(_rs.chains).forEach(function(k){
+        if (k === _rs.failedChain) return;
+        var s = _rsRouterScore(k);
+        if (s > bestScore) { bestScore = s; best = k; }
+      });
+      return best;
+    }
+
+    function _rsLog(msg, type) {
+      var ts = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      var tag = type ? type.toUpperCase() : 'INFO';
+      _rs.logs.push({ msg: msg, type: type || 'info', ts: ts, tag: tag });
+      var el = document.getElementById('rsEventLog');
+      if (el) {
+        var line = document.createElement('div');
+        line.className = 'rs-log-line log-' + (type||'info');
+        line.innerHTML = '<span class="log-ts">[' + ts + ']</span>'
+          + '<span class="log-tag">[' + tag + ']</span>'
+          + '<span class="log-msg">' + escHtml(msg) + '</span>';
+        el.appendChild(line);
+        el.scrollTop = el.scrollHeight;
+      }
+    }
+
+    /* ── Render helpers ── */
+    function _rsStateStyle(state, failed) {
+      if (failed || state === 'FAILED')   return { bg:'rgba(255,69,69,0.12)',  color:'#FF4545', label:'FAILED',   cls:'failed' };
+      if (state === 'DEGRADED')           return { bg:'rgba(255,179,0,0.12)', color:'#FFB300', label:'DEGRADED', cls:'degraded' };
+      if (state === 'MIGRATING')          return { bg:'rgba(59,123,255,0.1)', color:'#3B7BFF', label:'MIGRATING',cls:'migrating' };
+      if (state === 'RECOVERED')          return { bg:'rgba(0,229,160,0.1)',  color:'#00E5A0', label:'RECOVERED',cls:'healthy' };
+      return { bg:'rgba(0,229,160,0.1)',  color:'#00E5A0', label:'HEALTHY',   cls:'healthy' };
+    }
+
+    function _rsHealthColor(h) {
+      if (h >= 70) return '#00E5A0';
+      if (h >= 40) return '#FFB300';
+      return '#FF4545';
+    }
+
+    function _rsPrismStateObj() {
+      _rsRecomputePct();
+      return {
+        prism_version: '2.4.1',
+        timestamp: new Date().toISOString(),
+        portfolio_state: _rs.phase === 'recovered' ? 'RESILIENT' :
+                         _rs.phase === 'migrating' ? 'MIGRATING' :
+                         _rs.phase === 'routing'   ? 'AT_RISK'   :
+                         _rs.phase === 'failure'   ? 'CRITICAL'  : 'STABLE',
+        overall_prism_score: _rs.prismScore,
+        execution_router: {
+          active: _rs.phase !== 'idle',
+          selected_chain: _rs.routeTarget,
+          failed_chain:   _rs.failedChain,
+          router_scores: (function(){
+            var s = {};
+            Object.keys(_rs.chains).forEach(function(k){
+              s[k] = parseFloat(_rsRouterScore(k).toFixed(1));
+            });
+            return s;
+          })()
+        },
+        chain_states: (function(){
+          var s = {};
+          Object.keys(_rs.chains).forEach(function(k){
+            var c = _rs.chains[k];
+            s[k] = {
+              state: c.failed ? 'FAILED' : c.state,
+              health_score: c.health,
+              value_usd: parseFloat(c.value.toFixed(2)),
+              allocation_pct: parseFloat(c.pct.toFixed(2))
+            };
+          });
+          return s;
+        })(),
+        migration_plan: {
+          needed: !!_rs.failedChain,
+          from_chain: _rs.failedChain,
+          to_chain:   _rs.routeTarget,
+          step:       _rs.migrationStep,
+          zk_proof_status: _rs.migrationStep >= 6 ? 'VERIFIED' : 'PENDING'
+        }
+      };
+    }
+
+    /* ── JSON syntax highlighter ── */
+    function _rsHighlightJSON(obj, indent) {
+      indent = indent || 0;
+      var pad = '  '.repeat(indent);
+      var pad1 = '  '.repeat(indent + 1);
+      if (obj === null) return '<span class="sov-null">null</span>';
+      if (typeof obj === 'boolean') return obj ? '<span class="sov-bool-true">true</span>' : '<span class="sov-bool-false">false</span>';
+      if (typeof obj === 'number')  return '<span class="sov-num">' + obj + '</span>';
+      if (typeof obj === 'string')  return '<span class="sov-str">&quot;' + obj + '&quot;</span>';
+      if (Array.isArray(obj)) {
+        if (!obj.length) return '[]';
+        var items = obj.map(function(v){ return pad1 + _rsHighlightJSON(v, indent+1); });
+        return '[\n' + items.join(',\n') + '\n' + pad + ']';
+      }
+      var keys = Object.keys(obj);
+      if (!keys.length) return '{}';
+      var lines = keys.map(function(k){
+        var isHighlight = (k === 'portfolio_state' || k === 'selected_chain' || k === 'state' || k === 'overall_prism_score');
+        var keyHtml = '<span class="sov-key' + (isHighlight ? ' sov-highlight' : '') + '">&quot;' + k + '&quot;</span>';
+        return pad1 + keyHtml + ': ' + _rsHighlightJSON(obj[k], indent+1);
+      });
+      return '{\n' + lines.join(',\n') + '\n' + pad + '}';
+    }
+
+    /* ── Main render function ── */
+    function renderRouterSim() {
+      var container = document.getElementById('routerSimContainer');
+      if (!container) return;
+      _rsRecomputePct();
+
+      var statusLabel = 'ROUTER IDLE';
+      var statusCls   = 'active';
+      if (_rs.phase === 'failure')   { statusLabel = 'CHAIN FAILURE DETECTED'; statusCls = 'failure'; }
+      if (_rs.phase === 'routing')   { statusLabel = 'COMPUTING ROUTE…';       statusCls = 'migrating'; }
+      if (_rs.phase === 'migrating') { statusLabel = 'MIGRATING ASSETS…';      statusCls = 'migrating'; }
+      if (_rs.phase === 'recovered') { statusLabel = 'MIGRATION COMPLETE';     statusCls = 'recovered'; }
+
+      /* ── Chain cards ── */
+      var chainCardsHtml = Object.keys(_rs.chains).map(function(k) {
+        var c = _rs.chains[k];
+        var ss = _rsStateStyle(c.state, c.failed);
+        var isTarget = k === _rs.routeTarget && _rs.phase !== 'idle';
+        var extraCls = isTarget ? ' active-route' : ' ' + ss.cls;
+        var hColor = _rsHealthColor(c.health);
+        var formattedVal = c.value >= 1e6 ? '$' + (c.value/1e6).toFixed(2)+'M'
+                         : c.value >= 1e3 ? '$' + c.value.toLocaleString(undefined,{maximumFractionDigits:0})
+                         : '$' + c.value.toFixed(2);
+        var routerScore = _rsRouterScore(k).toFixed(1);
+        var canFail = !c.failed && _rs.phase === 'idle';
+        var canRestore = c.failed && _rs.phase !== 'migrating';
+
+        return '<div class="rs-chain-card' + extraCls + '" id="rsCard_' + k + '" style="position:relative;">'
+          + (isTarget ? '<div style="position:absolute;top:8px;right:8px;font-size:9px;font-weight:800;color:var(--cyan);font-family:var(--mono);letter-spacing:1px;background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.3);padding:2px 7px;border-radius:100px;">▶ ACTIVE ROUTE</div>' : '')
+          + '<div class="rs-chain-icon" style="background:' + c.color + '18;border:1px solid ' + c.color + '30;color:' + c.color + ';">' + c.icon + '</div>'
+          + '<div class="rs-chain-name">' + c.name + '</div>'
+          + '<div class="rs-chain-value">' + formattedVal + ' &nbsp;·&nbsp; ' + c.pct.toFixed(1) + '%</div>'
+          + '<div class="rs-chain-health-bar"><div class="rs-chain-health-fill" style="width:' + c.health + '%;background:' + hColor + ';"></div></div>'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+          + '<span class="rs-chain-state-pill" style="background:' + ss.bg + ';color:' + ss.color + ';border:1px solid ' + ss.color + '30;">' + ss.label + '</span>'
+          + '<span style="font-size:10px;font-family:var(--mono);color:var(--text-muted);">Hlth: <span style="color:' + hColor + ';font-weight:700;">' + c.health + '</span></span>'
+          + '</div>'
+          + '<div style="font-size:10px;color:var(--text-muted);font-family:var(--mono);margin-top:6px;">Router score: <span style="color:var(--cyan);font-weight:700;">' + routerScore + '</span></div>'
+          + (canFail   ? '<button class="rs-fail-btn can-fail"  onclick="rsSimulateFailure(\'' + k + '\')">⚡ Simulate Failure</button>' : '')
+          + (canRestore ? '<button class="rs-fail-btn restore-btn" onclick="rsRestoreChain(\'' + k + '\')">↺ Restore Chain</button>' : '')
+          + (c.failed && _rs.phase === 'migrating' ? '<div style="margin-top:10px;font-size:10px;color:var(--red);font-family:var(--mono);">⚠ Assets being migrated…</div>' : '')
+          + '</div>';
+      }).join('');
+
+      /* ── Router Engine box ── */
+      var best = _rsBestTarget();
+      var bestC = best ? _rs.chains[best] : null;
+      var engineHtml = '';
+
+      if (_rs.phase === 'idle') {
+        engineHtml = '<div class="router-engine-decision">All chains operational</div>'
+          + '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:1rem;">Trigger a chain failure above to activate the Execution Router simulation.</div>'
+          + '<div class="router-flow">'
+          + '<div class="router-flow-node" style="background:rgba(59,123,255,0.06);border-color:rgba(59,123,255,0.2);color:var(--cyan);">PRISM Sentinel</div>'
+          + '<div class="router-flow-arrow"><span class="router-flow-arrow-animated">→</span></div>'
+          + '<div class="router-flow-node" style="background:rgba(59,123,255,0.06);border-color:rgba(59,123,255,0.2);color:var(--text-secondary);">No Failure</div>'
+          + '<div class="router-flow-arrow"><span class="router-flow-arrow-animated">→</span></div>'
+          + '<div class="router-flow-node" style="background:rgba(0,229,160,0.06);border-color:rgba(0,229,160,0.2);color:var(--green);">Continue on-chain</div>'
+          + '</div>';
+      } else {
+        var fc = _rs.chains[_rs.failedChain];
+        var bestScore = best ? _rsRouterScore(best).toFixed(1) : '—';
+        engineHtml = '<div class="router-engine-decision">'
+          + 'Route: <span style="color:' + (fc?fc.color:'#FF4545') + ';">' + (fc?fc.name:'—') + '</span>'
+          + ' <span style="color:var(--text-muted);font-size:0.9em;">→</span>'
+          + ' <span style="color:' + (bestC?bestC.color:'var(--cyan)') + ';">' + (bestC?bestC.name:'Computing…') + '</span>'
+          + '</div>'
+          + '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:1rem;">'
+          + 'Execution Router selected <strong style="color:' + (bestC?bestC.color:'var(--cyan)') + ';">' + (bestC?bestC.name:'computing') + '</strong> (score: ' + bestScore + ') as the migration target.'
+          + '</div>'
+          + '<div class="router-flow">'
+          + '<div class="router-flow-node" style="background:rgba(255,69,69,0.08);border-color:rgba(255,69,69,0.3);color:var(--red);">'
+          + (fc ? fc.icon + ' ' + fc.name : '—') + ' <span style="font-size:9px;">[FAILED]</span></div>'
+          + '<div class="router-flow-arrow"><span class="router-flow-arrow-animated" style="color:var(--red);">→</span></div>'
+          + '<div class="router-flow-node" style="background:rgba(59,123,255,0.1);border-color:rgba(59,123,255,0.3);color:var(--cyan);">PRISM Router</div>'
+          + '<div class="router-flow-arrow"><span class="router-flow-arrow-animated">→</span></div>'
+          + '<div class="router-flow-node" style="background:' + (bestC ? bestC.color+'18' : 'rgba(0,229,160,0.06)') + ';border-color:' + (bestC ? bestC.color+'40' : 'rgba(0,229,160,0.2)') + ';color:' + (bestC ? bestC.color : 'var(--green)') + ';">'
+          + (bestC ? bestC.icon + ' ' + bestC.name : 'Selecting…') + '</div>'
+          + '</div>';
+      }
+
+      /* ── Migration steps ── */
+      var stepsHtml = '<div class="migration-steps">';
+      _RS_STEPS.forEach(function(step, i) {
+        var stepNum = i + 1;
+        var cls = 'pending';
+        var iconContent = stepNum;
+        var iconStyle = 'background:rgba(255,255,255,0.04);color:var(--text-muted);border-color:rgba(255,255,255,0.08);';
+        if (_rs.migrationStep >= stepNum) {
+          cls = 'done';
+          iconContent = '✓';
+          iconStyle = 'background:rgba(0,229,160,0.12);color:var(--green);border-color:rgba(0,229,160,0.3);';
+        } else if (_rs.migrationStep === stepNum - 1 && _rs.phase === 'migrating') {
+          cls = 'active';
+          iconContent = '…';
+          iconStyle = 'background:rgba(59,123,255,0.12);color:var(--cyan);border-color:rgba(59,123,255,0.3);animation:pulse-green 1s infinite;';
+        }
+        stepsHtml += '<div class="migration-step ' + cls + '">'
+          + '<div class="step-icon" style="' + iconStyle + '">' + iconContent + '</div>'
+          + '<span>' + step.icon + '&nbsp; ' + step.label + '</span>'
+          + (_rs.migrationStep >= stepNum ? '<span style="margin-left:auto;font-size:10px;color:var(--green);font-family:var(--mono);">✓ done</span>' : '')
+          + '</div>';
+      });
+      stepsHtml += '</div>';
+
+      /* ── PRISM State Object ── */
+      var stateObj = _rsPrismStateObj();
+      var stateObjHtml = '<div class="state-obj-viewer"><pre style="margin:0;">' + _rsHighlightJSON(stateObj) + '</pre></div>';
+
+      /* ── Controls ── */
+      var ctrlsHtml = '';
+      if (_rs.phase === 'idle') {
+        ctrlsHtml = '<div class="rs-controls">'
+          + '<button class="rs-ctrl-btn danger" onclick="rsAutoDemo()">⚡ Run Full Demo (Auto)</button>'
+          + '<span style="font-size:12px;color:var(--text-muted);">or click "Simulate Failure" on any chain above</span>'
+          + '</div>';
+      }
+
+      /* ── Assemble ── */
+      container.innerHTML =
+        '<div class="router-sim-wrap">'
+        + '<div style="display:grid;grid-template-columns:1fr auto;align-items:start;gap:1rem;margin-bottom:0.5rem;">'
+        + '<div>'
+        + '<div class="router-sim-title">⚡ PRISM Execution Router Simulation</div>'
+        + '<div class="router-sim-subtitle">Click any chain to simulate failure and watch the router reroute assets in real-time</div>'
+        + '</div>'
+        + '<div class="router-status-badge ' + statusCls + '"><span class="router-status-dot"></span>' + statusLabel + '</div>'
+        + '</div>'
+
+        + ctrlsHtml
+
+        /* Chain grid */
+        + '<div class="rs-chain-grid">' + chainCardsHtml + '</div>'
+
+        /* Router engine + migration steps side by side */
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">'
+
+        + '<div class="router-engine-box">'
+        + '<div class="router-engine-header">'
+        + '<div class="router-engine-title">PRISM · Execution Router</div>'
+        + '<span style="font-size:11px;font-family:var(--mono);color:var(--cyan);">v2.4.1</span>'
+        + '</div>'
+        + engineHtml
+        + '</div>'
+
+        + '<div style="background:var(--navy-card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;display:flex;flex-direction:column;justify-content:space-between;">'
+        + '<div>'
+        + '<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;">Migration Pipeline</div>'
+        + (_rs.phase === 'idle' ? '<div style="color:var(--text-muted);font-size:12px;padding:1rem 0;">Waiting for failure event…</div>' : stepsHtml)
+        + '</div>'
+        + (_rs.phase === 'routing' || _rs.phase === 'failure'
+           ? '<div style="margin-top:1rem;"><button class="rs-ctrl-btn primary" style="width:100%;justify-content:center;padding:12px;box-shadow:none;" onclick="rsStartMigration()">🔀 Start Migration</button></div>'
+           : '')
+        + (_rs.phase === 'recovered'
+           ? '<div style="margin-top:1rem;"><button class="rs-ctrl-btn primary" style="width:100%;justify-content:center;padding:12px;box-shadow:none;" onclick="rsReset()">↺ Reset Simulation</button></div>'
+           : '')
+        + (_rs.phase === 'migrating'
+           ? '<div style="margin-top:1rem;"><button class="rs-ctrl-btn secondary" style="width:100%;justify-content:center;padding:12px;opacity:0.5;pointer-events:none;" disabled>Relocating assets…</button></div>'
+           : '')
+        + '</div>'
+
+        + '</div>'
+
+        /* Event log */
+        + '<div style="display:grid;grid-template-columns:1fr;gap:1rem;">'
+
+        + '<div>'
+        + '<div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Event Log</div>'
+        + '<div class="rs-event-log" id="rsEventLog">'
+        + _rs.logs.map(function(l){
+            var tsStr = l.ts ? '<span class="log-ts">[' + l.ts + ']</span>' : '';
+            var tagStr = l.tag ? '<span class="log-tag">[' + l.tag + ']</span>' : '';
+            return '<div class="rs-log-line log-' + l.type + '">' 
+              + tsStr + tagStr + '<span class="log-msg">' + escHtml(l.msg) + '</span>'
+              + '</div>';
+          }).join('')
+        + '</div>'
+        + '</div>'
+
+        + '</div>'
+
+        + '</div>'; // end router-sim-wrap
+    }
+
+    /* ── Actions ── */
+    function rsSimulateFailure(chainKey) {
+      if (_rs.phase !== 'idle') return;
+      _rs.failedChain = chainKey;
+      _rs.chains[chainKey].failed = true;
+      _rs.chains[chainKey].state  = 'FAILED';
+      _rs.chains[chainKey].health = 0;
+      _rs.phase = 'failure';
+      _rs.migrationStep = 0;
+      _rs.routeTarget = _rsBestTarget();
+      _rs.prismScore = Math.max(30, _rs.prismScore - 35);
+      _rs.logs = [];
+      renderRouterSim();
+      _rsLog('ALERT: ' + _rs.chains[chainKey].name + ' chain failure detected!', 'error');
+      _rsLog('PRISM Sentinel triggered. Broadcasting to router network…', 'warn');
+      _rsLog('Computing execution router scores across all chains…', 'info');
+      if (_rs.routeTarget) {
+        _rsLog('Target selected: ' + _rs.chains[_rs.routeTarget].name + ' (score: ' + _rsRouterScore(_rs.routeTarget).toFixed(1) + ')', 'success');
+        _rsLog('Click "Start Migration" to begin cross-chain asset relocation.', 'warn');
+      }
+      setTimeout(function(){ _rs.phase = 'routing'; renderRouterSim(); }, 400);
+    }
+
+    function rsRestoreChain(chainKey) {
+      _rs.chains[chainKey].failed = false;
+      _rs.chains[chainKey].state  = 'HEALTHY';
+      _rs.chains[chainKey].health = 90;
+      if (_rs.failedChain === chainKey) {
+        _rs.failedChain = null;
+        _rs.routeTarget = null;
+        _rs.phase = 'idle';
+      }
+      _rsLog(_rs.chains[chainKey].name + ' restored to HEALTHY state.', 'success');
+      renderRouterSim();
+    }
+
+    function rsStartMigration() {
+      if (!_rs.routeTarget || _rs.phase === 'migrating') return;
+      _rs.phase = 'migrating';
+      _rs.migrationStep = 0;
+      renderRouterSim();
+      _rsLog('Migration pipeline initiated -> ' + _rs.chains[_rs.routeTarget].name, 'info');
+
+      var delays = [400, 900, 1500, 2200, 3100, 4100, 5200];
+      _RS_STEPS.forEach(function(step, i){
+        setTimeout(function(){
+          _rs.migrationStep = i + 1;
+          _rsLog('[' + step.icon + '] ' + step.label + '…', i === _RS_STEPS.length-1 ? 'success' : 'info');
+          if (i === _RS_STEPS.length - 1) {
+            /* Transfer value */
+            var migVal = _rs.chains[_rs.failedChain] ? _rs.chains[_rs.failedChain].value : 0;
+            if (_rs.chains[_rs.failedChain]) {
+              _rs.chains[_rs.failedChain].value  = 0;
+              _rs.chains[_rs.failedChain].state  = 'MIGRATING';
+            }
+            _rs.chains[_rs.routeTarget].value += migVal;
+            _rs.prismScore = Math.min(97, _rs.prismScore + 40);
+            _rs.phase = 'recovered';
+            _rsLog('Migration complete! Assets secured on ' + _rs.chains[_rs.routeTarget].name + '.', 'success');
+            _rsLog('PRISM Score restored to ' + _rs.prismScore + '/100', 'success');
+          }
+          renderRouterSim();
+        }, delays[i]);
+      });
+    }
+
+    function rsReset() {
+      if (_rs.stepTimer) { clearTimeout(_rs.stepTimer); _rs.stepTimer = null; }
+      Object.assign(_rs, {
+        phase: 'idle', failedChain: null, routeTarget: null, migrationStep: 0, logs: [], prismScore: 72
+      });
+      _rs.chains = {
+        ethereum: { name:'Ethereum', icon:'Ξ',  color:'#627EEA', health:90,  value:17040.27,   pct:0,    state:'HEALTHY',  failed:false },
+        polygon:  { name:'Polygon',  icon:'⬡',  color:'#8247E5', health:100, value:6724.22,    pct:0,    state:'HEALTHY',  failed:false },
+        bsc:      { name:'BNB Chain',icon:'B',  color:'#F3BA2F', health:45,  value:500110000,  pct:99.9, state:'DEGRADED', failed:false },
+        solana:   { name:'Solana',   icon:'◎',  color:'#9945FF', health:100, value:0,          pct:0,    state:'HEALTHY',  failed:false }
+      };
+      renderRouterSim();
+      _rsLog('Simulation reset. All chains restored to initial state.', 'info');
+    }
+
+    function rsAutoDemo() {
+      /* Pick BNB Chain (already degraded) as the demo failure */
+      rsSimulateFailure('bsc');
+      setTimeout(function(){ rsStartMigration(); }, 2000);
+    }
+
+    /* ── Init: run once when tab becomes active ── */
+    var _rsInited = false;
+    function initRouterSim() {
+      if (!_rsInited) {
+        _rsInited = true;
+        _rs.logs = [];
+        renderRouterSim();
+        _rsLog('PRISM Execution Router online. Monitoring 4 chains.', 'info');
+        _rsLog('BNB Chain health degraded (45/100). Recommend simulation.', 'warn');
+        _rsLog('Click "Run Full Demo" for automatic failure + migration sequence.', 'success');
+      } else {
+        renderRouterSim();
+      }
+    }
+
+    /* ── Patch switchTab to init router sim on first visit ── */
+    var _origSwitchTab = switchTab;
+    switchTab = function(name, el) {
+      _origSwitchTab(name, el);
+      if (name === 'routersim') initRouterSim();
+    };
 
     /* ===== URL PARAM ===== */
     (function () {

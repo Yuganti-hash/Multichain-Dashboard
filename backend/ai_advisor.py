@@ -21,10 +21,12 @@ try:
     from autogen_agentchat.agents import AssistantAgent
     from autogen_agentchat.messages import TextMessage
     from autogen_ext.models.openai import OpenAIChatCompletionClient
+    from autogen_core import CancellationToken
     AUTOGEN_AVAILABLE = True
     logger.info("AutoGen loaded for Portfolio Advisor")
 except ImportError:
     AUTOGEN_AVAILABLE = False
+    CancellationToken = None  # type: ignore
     logger.warning("AutoGen not available — install autogen-agentchat autogen-ext")
 
 # ── Module-level portfolio context store ──────────────────────────────────
@@ -181,7 +183,7 @@ async def get_rebalancing_advice() -> str:
     advice = [f"Current PRISM Score: {score}/100", ""]
 
     if score >= 70:
-        advice.append("✅ Portfolio is already PRISM READY. No urgent action needed.")
+        advice.append("Portfolio is already PRISM READY. No urgent action needed.")
         advice.append("Consider adding more token diversity within each chain.")
         return "\n".join(advice)
 
@@ -194,7 +196,7 @@ async def get_rebalancing_advice() -> str:
             target_val = total * 0.4
             move_amt   = val - target_val
             advice.append(
-                f"⚠️  {chn.upper()} holds {pct:.1f}% of your portfolio."
+                f"Warning: {chn.upper()} holds {pct:.1f}% of your portfolio."
             )
             advice.append(
                 f"   Consider moving ~${move_amt:,.0f} to other chains "
@@ -203,7 +205,7 @@ async def get_rebalancing_advice() -> str:
 
     if len(active) == 1:
         advice.append("")
-        advice.append("🔴 All assets are on a single chain.")
+        advice.append("All assets are on a single chain.")
         advice.append("   Spreading across 2+ chains will immediately improve your score.")
 
     advice.append("")
@@ -283,6 +285,16 @@ def get_advisor_agent():
     model_name  = os.getenv("ADVISOR_MODEL", "gpt-4o-mini")
     temperature = float(os.getenv("ADVISOR_TEMPERATURE", "0.2"))
 
+    # Guard: Gemini model names are not compatible with OpenAIChatCompletionClient.
+    # If a Gemini model is configured, fall back to gpt-4o-mini and warn.
+    if model_name.startswith("gemini"):
+        logger.warning(
+            "ADVISOR_MODEL=%s is a Gemini model but OpenAIChatCompletionClient is in use. "
+            "Falling back to gpt-4o-mini. To use Gemini, switch to a Gemini-compatible client.",
+            model_name,
+        )
+        model_name = "gpt-4o-mini"
+
     try:
         model_client = OpenAIChatCompletionClient(
             model=model_name,
@@ -350,7 +362,7 @@ async def ask_advisor(
         # Send to AutoGen agent
         response = await agent.on_messages(
             [TextMessage(content=enriched, source="user")],
-            cancellation_token=None,
+            cancellation_token=CancellationToken(),
         )
 
         reply_text = (

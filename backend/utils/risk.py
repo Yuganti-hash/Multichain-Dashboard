@@ -228,12 +228,13 @@ def calculate_prism_health_score(chain_breakdown: list[dict], tokens: list[dict]
             prism_ready: bool
         }
     """
-    # Default scores for all 4 chains
+    # Default scores for all supported chains
     chain_scores = {
         "ethereum": 100,
         "polygon":  100,
         "bsc":      100,
         "solana":   100,
+        "arbitrum": 100,
     }
 
     # Filter to active chains only

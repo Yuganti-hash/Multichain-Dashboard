@@ -37,6 +37,8 @@ from utils import prices as prices_util
 from utils import risk as risk_util
 from utils import compliance
 from utils import lumina
+from utils import router
+from utils import prism_state as prism_state_util
 from ai_advisor import ask_advisor, is_advisor_ready
 from state_machine import StateMachine
 
@@ -217,8 +219,10 @@ async def get_portfolio(wallet_address: str):
         prism_health = risk_util.calculate_prism_health_score(chain_breakdown, all_tokens)
 
         # CREDEX On-Chain Credit Score
-        credit_score = risk_util.calculate_credit_score(
-            all_tokens, eth_data.get("transactions", []))
+        # Note: transaction history is fetched separately via /transactions endpoint
+        # to keep portfolio response fast. Credit score uses token diversity only.
+        credit_score = risk_util.calculate_credit_score(all_tokens, [])
+
 
         # Build Protocol Resilient Interoperable State Machine
         sm = StateMachine(
@@ -227,6 +231,18 @@ async def get_portfolio(wallet_address: str):
             prism_health=prism_health,
         )
         state_machine = sm.to_dict()
+
+        # PRISM Execution Router
+        router_data = router.calculate_routing(chain_breakdown, prism_health, lumina_data)
+
+        # Chain-agnostic PRISM State Object
+        prism_state_obj = prism_state_util.build_prism_state(
+            wallet=wallet_address,
+            total_value_usd=total_value_usd,
+            risk_score=risk_score,
+            credit_score=credit_score,
+            router_data=router_data,
+        )
 
         # ------------------------------------------------------------------
         # Final response
@@ -249,6 +265,8 @@ async def get_portfolio(wallet_address: str):
             "nfts":            all_nfts,
             "prices":          prices,
             "state_machine":   state_machine,
+            "router":          router_data,
+            "prism_state":     prism_state_obj,
         }
 
     except HTTPException:

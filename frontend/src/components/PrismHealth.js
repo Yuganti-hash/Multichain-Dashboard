@@ -172,40 +172,6 @@ const PrismHealth = ({ prismHealth }) => {
         );
       })}
 
-      {/* ── BOTTOM INFO BANNER ──────────────────────────────────────────── */}
-      <div className="bg-blue-950/30 border border-blue-800/20 rounded-lg p-3 mt-4">
-        <div className="flex items-start gap-2">
-
-          {/* Info icon */}
-          <div className="flex-shrink-0 mt-0.5">
-            <svg
-              width="14"
-              height="14"
-              fill="currentColor"
-              className="text-blue-400"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 
-                   0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 
-                   0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-
-          {/* Info text */}
-          <p className="text-xs text-blue-300 leading-relaxed">
-            <span className="font-semibold">PRISM Architecture: </span>
-            In a full SOVEREIGN deployment, this score drives automatic execution
-            routing — portfolios scoring below 70 trigger proactive state migration
-            to healthier chains, ensuring your financial state survives any
-            single-chain failure.
-          </p>
-        </div>
-      </div>
-
     </div>
   );
 };

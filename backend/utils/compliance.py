@@ -10,6 +10,9 @@ Returns:
   - CLEAR    → wallet passed screening, includes a VERTEX credential token
 """
 
+import hashlib
+import time
+
 # ---------------------------------------------------------------------------
 # Flagged wallet addresses (lowercase, checksumless)
 # Source: OFAC sanctions list (sample subset)
@@ -61,8 +64,6 @@ def check_compliance(wallet: str) -> dict:
         "credential":       f"VERTEX-{wallet[:8].upper()}-CLEAR",
     }
 
-
-import hashlib, time
 
 
 # ===========================================================================

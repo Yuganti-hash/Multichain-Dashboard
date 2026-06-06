@@ -225,6 +225,7 @@ export const getChainColor = (chain) => {
     polygon:  "#8247E5", // Polygon purple
     bsc:      "#F3BA2F", // BSC / BNB Chain yellow
     solana:   "#9945FF", // Solana purple
+    arbitrum: "#28A0F0", // Arbitrum blue
   };
   return colors[chain?.toLowerCase()] || "#6B7280"; // Default: neutral gray
 };
@@ -241,11 +242,11 @@ export const getChainLabel = (chain) => {
     polygon:  "Polygon",
     bsc:      "BNB Chain",
     solana:   "Solana",
+    arbitrum: "Arbitrum",
   };
 
   if (!chain) return "";
 
-  // Return mapped label, or capitalise the first letter of the raw value as fallback
   return (
     labels[chain.toLowerCase()] ||
     chain.charAt(0).toUpperCase() + chain.slice(1)

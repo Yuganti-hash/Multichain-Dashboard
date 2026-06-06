@@ -142,9 +142,9 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
                 # Prefer medium size, then low, then high, then original
                 for size_key in ["medium", "low", "high"]:
                     size_obj = media_collection.get(size_key) or {}
-                    url = size_obj.get("url") or ""
-                    if url and url.startswith("http"):
-                        media_image = url
+                    media_url = size_obj.get("url") or ""
+                    if media_url and media_url.startswith("http"):
+                        media_image = media_url
                         break
                 if not media_image:
                     original = media_items.get("original_media_url") or ""
@@ -176,6 +176,7 @@ async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
                     "symbol":          (item.get("symbol") or "NFT").upper(),
                     "image":           image or "",
                     "collection_logo": item.get("collection_logo") or "",
+                    "metadata":        metadata,
                     "chain":           "polygon",
                 }
             )

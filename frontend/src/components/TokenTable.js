@@ -26,6 +26,7 @@ const CHAIN_FILTERS = [
   { value: "polygon",  label: "Polygon"   },
   { value: "bsc",      label: "BNB Chain" },
   { value: "solana",   label: "Solana"    },
+  { value: "arbitrum", label: "Arbitrum"  },
 ];
 
 // ---------------------------------------------------------------------------

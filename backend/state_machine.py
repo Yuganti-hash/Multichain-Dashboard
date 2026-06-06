@@ -82,7 +82,7 @@ _CHAIN_STATE_COLORS: dict[str, str] = {
 }
 
 # Canonical chain order used when initialising nodes
-_SUPPORTED_CHAINS: list[str] = ["ethereum", "polygon", "bsc", "solana"]
+_SUPPORTED_CHAINS: list[str] = ["ethereum", "polygon", "bsc", "solana", "arbitrum"]
 
 
 class StateMachine:
@@ -138,14 +138,14 @@ class StateMachine:
             pct:   float = entry.get("percentage", 0)
 
             # Determine chain state from health score + value
-            if value == 0:
+            if score < 40:
+                state = ChainState.FAILED
+            elif value == 0:
                 state = ChainState.UNKNOWN
             elif score >= 70:
                 state = ChainState.HEALTHY
-            elif score >= 40:
-                state = ChainState.DEGRADED
             else:
-                state = ChainState.FAILED
+                state = ChainState.DEGRADED
 
             self.chain_nodes[chain] = ChainStateNode(
                 chain=chain,
@@ -277,6 +277,44 @@ class StateMachine:
             "estimated_safety_improvement": min(30 * len(plans), 60),
         }
 
+    def get_migration_status(self) -> dict:
+        """
+        Simulate PRISM migration status.
+        If any chain health is below 40, select the best alternative chain
+        and generate a recommendation.
+        """
+        failed_chains = [
+            node.chain for node in self.chain_nodes.values()
+            if node.health_score < 40
+        ]
+        
+        if failed_chains:
+            alternatives = [
+                node for node in self.chain_nodes.values()
+                if node.chain not in failed_chains
+            ]
+            best_alt = None
+            if alternatives:
+                best_alt = max(alternatives, key=lambda n: n.health_score).chain
+            
+            failed_str = ", ".join([c.capitalize() if c != "bsc" else "BSC" for c in failed_chains])
+            alt_str = "BSC" if best_alt == "bsc" else (best_alt.capitalize() if best_alt else "another secure chain")
+            recommendation = f"Chain failure detected on {failed_str}. Migrate assets and operations to {alt_str}."
+            
+            return {
+                "migration_required": True,
+                "failed_chains": failed_chains,
+                "best_alternative": best_alt,
+                "recommendation": recommendation,
+            }
+        else:
+            return {
+                "migration_required": False,
+                "failed_chains": [],
+                "best_alternative": None,
+                "recommendation": "All chains are operating normally. No migration required.",
+            }
+
     def to_dict(self) -> dict:
         """
         Serialise the entire state machine to a JSON-compatible dict.
@@ -310,8 +348,9 @@ class StateMachine:
                 }
                 for chain, node in self.chain_nodes.items()
             },
-            "migration_plan": self.get_migration_plan(),
-            "created_at":     self.created_at,
+            "migration_plan":   self.get_migration_plan(),
+            "migration_status": self.get_migration_status(),
+            "created_at":       self.created_at,
             "summary": (
                 f"{self.portfolio_state.value} — {active_count} active chain"
                 f"{'s' if active_count != 1 else ''}"
