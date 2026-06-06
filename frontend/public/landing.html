@@ -121,13 +121,11 @@
       border-color: rgba(139, 92, 246, 0.5);
     }
 
-    /* ===== MAGNETIC EFFECT ===== */
     .magnetic {
       display: inline-block;
       transition: transform .3s cubic-bezier(.25, .46, .45, .94);
     }
 
-    /* ===== CANVAS ===== */
     #particleCanvas {
       position: fixed;
       top: 0;
@@ -138,7 +136,6 @@
       pointer-events: none;
     }
 
-    /* ===== NOISE OVERLAY ===== */
     .noise {
       position: fixed;
       inset: 0;
@@ -374,14 +371,17 @@
     .hero-mesh {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 20% 50%, rgba(59, 123, 255, .08) 0%, transparent 60%), radial-gradient(ellipse 60% 60% at 80% 30%, rgba(0, 212, 255, .06) 0%, transparent 60%), radial-gradient(ellipse 50% 50% at 60% 80%, rgba(139, 92, 246, .05) 0%, transparent 60%);
+      background: radial-gradient(ellipse 80% 60% at 20% 50%, rgba(59, 123, 255, .08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 60% at 80% 30%, rgba(0, 212, 255, .06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 60% 80%, rgba(139, 92, 246, .05) 0%, transparent 60%);
       pointer-events: none;
     }
 
     .hero-grid {
       position: absolute;
       inset: 0;
-      background-image: linear-gradient(rgba(59, 123, 255, .04) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 123, 255, .04) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(59, 123, 255, .04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 123, 255, .04) 1px, transparent 1px);
       background-size: 60px 60px;
       pointer-events: none;
       mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
@@ -455,7 +455,6 @@
       justify-content: center;
     }
 
-    /* hero reveal animations */
     .reveal {
       opacity: 0;
       transform: translateY(30px);
@@ -644,7 +643,6 @@
       gap: 2rem;
       align-items: center;
       flex-wrap: wrap;
-      /* ===== FIX: add breathing room above the ticker strip ===== */
       margin-bottom: 3rem;
     }
 
@@ -885,10 +883,10 @@
       box-shadow: 0 0 32px var(--blue-glow), 0 8px 20px rgba(0, 0, 0, .3);
     }
 
-    /* ===== STATS BAR ===== */
+    /* ===== STATS BAR — OPTION 2: ARCHITECTURE FOCUSED ===== */
     .stats-bar {
       background: var(--navy-mid);
-      padding: 3rem 2.5rem;
+      padding: 0;
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
       position: relative;
@@ -904,6 +902,29 @@
       pointer-events: none;
     }
 
+    /* glowing scan line that sweeps across */
+    .stats-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, .04), transparent);
+      animation: stats-sweep 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes stats-sweep {
+      0% {
+        left: -60%;
+      }
+
+      100% {
+        left: 110%;
+      }
+    }
+
     .stats-inner {
       max-width: 1280px;
       margin: 0 auto;
@@ -915,8 +936,14 @@
     .stat-item {
       flex: 1;
       text-align: center;
-      padding: 0 2rem;
+      padding: 2.5rem 1.5rem;
       position: relative;
+      transition: background .3s;
+      cursor: default;
+    }
+
+    .stat-item:hover {
+      background: rgba(59, 123, 255, .04);
     }
 
     .stat-item:not(:last-child)::after {
@@ -930,12 +957,39 @@
       background: var(--border);
     }
 
+    /* top micro-label (the "concept tag") */
+    .stat-concept {
+      font-size: 9px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .stat-concept::before,
+    .stat-concept::after {
+      content: '';
+      display: inline-block;
+      width: 16px;
+      height: 1px;
+      background: var(--border-bright);
+      opacity: .6;
+    }
+
+    /* main value */
     .stat-value {
       font-family: 'Syne', sans-serif;
-      font-size: 2rem;
+      font-size: 1.7rem;
       font-weight: 800;
       color: var(--text-primary);
       letter-spacing: -.02em;
+      line-height: 1;
+      margin-bottom: 6px;
     }
 
     .stat-value.cyan {
@@ -943,14 +997,55 @@
       text-shadow: 0 0 20px var(--cyan-glow);
     }
 
+    .stat-value.green {
+      color: var(--green);
+      text-shadow: 0 0 16px rgba(0, 229, 160, .3);
+    }
+
+    .stat-value.purple {
+      color: var(--purple);
+      text-shadow: 0 0 16px var(--purple-glow);
+    }
+
+    /* bottom label */
     .stat-label {
       font-size: 11px;
       color: var(--text-muted);
-      margin-top: 6px;
+      margin-top: 4px;
       text-transform: uppercase;
       letter-spacing: 2px;
       font-weight: 500;
       font-family: var(--mono);
+    }
+
+    /* small pill below the label showing tech detail */
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 10px;
+      font-size: 10px;
+      font-family: var(--mono);
+      padding: 3px 10px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      transition: all .3s;
+    }
+
+    .stat-item:hover .stat-pill {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(0, 212, 255, .06);
+    }
+
+    .stat-pill-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: .7;
+      flex-shrink: 0;
     }
 
     /* ===== SECTION COMMON ===== */
@@ -1010,7 +1105,6 @@
       perspective-origin: 50% 40%;
     }
 
-    /* ===== 3D CARD BASE ===== */
     .card-3d {
       position: relative;
       border-radius: 16px;
@@ -1082,7 +1176,6 @@
       opacity: 1;
     }
 
-    /* feature card specifics */
     .feature-icon-wrap {
       width: 44px;
       height: 44px;
@@ -1273,7 +1366,6 @@
       max-width: 200px;
     }
 
-    /* ===== FLOATING ELEMENTS (scroll parallax) ===== */
     .float-element {
       position: absolute;
       pointer-events: none;
@@ -1866,15 +1958,27 @@
       .stats-inner {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
+        gap: 0;
       }
 
       .stat-item::after {
         display: none !important;
       }
 
+      .stat-item {
+        padding: 1.75rem 1rem;
+      }
+
       .stat-value {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
+      }
+
+      .stat-concept {
+        font-size: 8px;
+      }
+
+      .stat-pill {
+        display: none;
       }
 
       .cta-section h2 {
@@ -2031,7 +2135,6 @@
       width: 100%;
     }
 
-    /* ===== APP CARDS (all 3D) ===== */
     .app-3d-card {
       background: var(--navy-card);
       border: 1px solid var(--border);
@@ -2675,7 +2778,6 @@
       color: var(--text-muted);
     }
 
-    /* TOKENS TABLE */
     .tokens-panel {
       border-radius: 14px;
       overflow: hidden;
@@ -2766,7 +2868,6 @@
       font-family: var(--mono);
     }
 
-    /* NFT CARD */
     .nft-card {
       background: var(--navy-card);
       border: 1px solid var(--border);
@@ -2791,7 +2892,6 @@
       background: linear-gradient(135deg, var(--navy-mid), rgba(59, 123, 255, .08));
     }
 
-    /* TX */
     .tx-row {
       background: var(--navy-card);
       border: 1px solid var(--border);
@@ -2808,7 +2908,6 @@
       border-color: var(--border-bright);
     }
 
-    /* AI ADVISOR */
     .ai-advisor-panel {
       max-width: 780px;
       margin: 0 auto;
@@ -2974,7 +3073,6 @@
       }
     }
 
-    /* ===== SCROLL REVEAL SECTIONS ===== */
     .sr-section {
       opacity: 0;
       transform: translateY(40px);
@@ -2986,7 +3084,6 @@
       transform: translateY(0);
     }
 
-    /* ===== INTERACTIVE MOUSE PARALLAX ===== */
     .parallax-deep {
       transition: transform .05s linear;
     }
@@ -3003,17 +3100,14 @@
 
 <body>
 
-  <!-- Custom Cursor -->
   <div id="cursor"></div>
   <div id="cursor-ring"></div>
-
   <div class="noise"></div>
   <canvas id="particleCanvas"></canvas>
 
   <!-- ==================== LANDING PAGE ==================== -->
   <div id="landingPage">
 
-    <!-- NAVBAR -->
     <nav class="navbar" id="navbar">
       <div class="nav-logo magnetic" onclick="smoothScrollTo('hero')">
         <div class="nav-logo-icon">MC</div>
@@ -3023,7 +3117,7 @@
         <a onclick="smoothScrollTo('features')" class="magnetic">Products</a>
         <a onclick="smoothScrollTo('prism')" class="magnetic">PRISM</a>
         <a onclick="smoothScrollTo('features')" class="magnetic">AI Advisor</a>
-        <a onclick="smoothScrollTo('stats')" class="magnetic">Chains</a>
+        <a onclick="smoothScrollTo('stats')" class="magnetic">Architecture</a>
         <a onclick="smoothScrollTo('how-it-works')" class="magnetic">Developers</a>
       </div>
       <div class="nav-actions">
@@ -3040,7 +3134,8 @@
       <a onclick="smoothScrollTo('prism');document.getElementById('mobileMenu').classList.remove('open')">PRISM</a>
       <a onclick="smoothScrollTo('features');document.getElementById('mobileMenu').classList.remove('open')">AI
         Advisor</a>
-      <a onclick="smoothScrollTo('stats');document.getElementById('mobileMenu').classList.remove('open')">Chains</a>
+      <a
+        onclick="smoothScrollTo('stats');document.getElementById('mobileMenu').classList.remove('open')">Architecture</a>
       <a
         onclick="smoothScrollTo('how-it-works');document.getElementById('mobileMenu').classList.remove('open')">Developers</a>
     </div>
@@ -3052,8 +3147,6 @@
       <div class="hero-orb hero-orb-1 parallax-mid" id="heroOrb1"></div>
       <div class="hero-orb hero-orb-2 parallax-mid" id="heroOrb2"></div>
       <div class="hero-orb hero-orb-3 parallax-shallow" id="heroOrb3"></div>
-
-      <!-- floating geometric elements -->
       <div class="float-element float-element-1"></div>
       <div class="float-element float-element-2"></div>
       <div class="float-element float-element-3"></div>
@@ -3180,33 +3273,70 @@
       </div>
     </div>
 
-    <!-- STATS BAR -->
+    <!-- ===== STATS BAR — OPTION 2: ARCHITECTURE FOCUSED ===== -->
     <section class="stats-bar sr-section" id="stats">
       <div class="stats-inner">
+
         <div class="stat-item">
-          <div class="stat-value" data-target="4">0</div>
-          <div class="stat-label">Blockchains</div>
+          <div class="stat-concept">Chains</div>
+          <div class="stat-value cyan">4</div>
+          <div class="stat-label">Chains Aggregated</div>
+          <div class="stat-pill">
+            <span class="stat-pill-dot"></span>
+            ETH · POL · BSC · SOL
+          </div>
         </div>
+
         <div class="stat-item">
-          <div class="stat-value cyan">$500M+</div>
-          <div class="stat-label">Portfolio Tracked</div>
+          <div class="stat-concept">Architecture</div>
+          <div class="stat-value" style="font-size:1.15rem;letter-spacing:-.01em;">State–Execution</div>
+          <div class="stat-label">Separation</div>
+          <div class="stat-pill">
+            <span class="stat-pill-dot"></span>
+            PRISM Core Principle
+          </div>
         </div>
+
         <div class="stat-item">
-          <div class="stat-value" data-target="2684">0</div>
-          <div class="stat-label">Tokens Detected</div>
+          <div class="stat-concept">Identity</div>
+          <div class="stat-value green">Chain-Agnostic</div>
+          <div class="stat-label">Identity</div>
+          <div class="stat-pill">
+            <span class="stat-pill-dot"></span>
+            ZK-Proof Verified
+          </div>
         </div>
+
         <div class="stat-item">
-          <div class="stat-value cyan">LIVE</div>
-          <div class="stat-label">Price Data</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" data-target="78" data-suffix="/100">0</div>
+          <div class="stat-concept">Resilience</div>
+          <div class="stat-value purple" id="prismStatValue" data-target="78" data-suffix="/100">0/100</div>
           <div class="stat-label">PRISM Score</div>
+          <div class="stat-pill">
+            <span class="stat-pill-dot"></span>
+            Portfolio Resilience
+          </div>
         </div>
+
         <div class="stat-item">
-          <div class="stat-value cyan">AI</div>
-          <div class="stat-label">Powered Advisor</div>
+          <div class="stat-concept">Intelligence</div>
+          <div class="stat-value cyan">AI Advisor</div>
+          <div class="stat-label">GPT-4o-mini</div>
+          <div class="stat-pill">
+            <span class="stat-pill-dot"></span>
+            AutoGen · 6 Tools
+          </div>
         </div>
+
+        <div class="stat-item">
+          <div class="stat-concept">Custody</div>
+          <div class="stat-value green">100%</div>
+          <div class="stat-label">Non-Custodial</div>
+          <div class="stat-pill">
+            <span class="stat-pill-dot"></span>
+            Read-Only · No Keys
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -3403,24 +3533,28 @@
               <div class="prism-chain-bar"><span class="pcb-label">Ethereum</span>
                 <div class="pcb-track">
                   <div class="pcb-fill" data-width="90" style="background:linear-gradient(90deg,#627EEA,#8B9FFF)"></div>
-                </div><span class="pcb-score">90</span>
+                </div>
+                <span class="pcb-score">90</span>
               </div>
               <div class="prism-chain-bar"><span class="pcb-label">Polygon</span>
                 <div class="pcb-track">
                   <div class="pcb-fill" data-width="100" style="background:linear-gradient(90deg,#8247E5,#A97BFF)">
                   </div>
-                </div><span class="pcb-score">100</span>
+                </div>
+                <span class="pcb-score">100</span>
               </div>
               <div class="prism-chain-bar"><span class="pcb-label">BNB Chain</span>
                 <div class="pcb-track">
                   <div class="pcb-fill" data-width="45" style="background:linear-gradient(90deg,#F3BA2F,#FFD566)"></div>
-                </div><span class="pcb-score">45</span>
+                </div>
+                <span class="pcb-score">45</span>
               </div>
               <div class="prism-chain-bar"><span class="pcb-label">Solana</span>
                 <div class="pcb-track">
                   <div class="pcb-fill" data-width="100" style="background:linear-gradient(90deg,#9945FF,#C285FF)">
                   </div>
-                </div><span class="pcb-score">100</span>
+                </div>
+                <span class="pcb-score">100</span>
               </div>
             </div>
             <div class="prism-info-box">Score ≥ 70 → PRISM READY — portfolio can survive chain failure</div>
@@ -3468,7 +3602,7 @@
           <a onclick="smoothScrollTo('features')">Features</a>
           <a onclick="smoothScrollTo('prism')">PRISM Score</a>
           <a onclick="smoothScrollTo('features')">AI Advisor</a>
-          <a onclick="smoothScrollTo('stats')">Chains</a>
+          <a onclick="smoothScrollTo('stats')">Architecture</a>
         </div>
         <div class="footer-col">
           <h4>Developers</h4>
@@ -3517,7 +3651,6 @@
     </div>
 
     <div class="app-body">
-      <!-- Search Box -->
       <div class="app-3d-card search-box" id="appSearchCard">
         <h3>Search Wallet</h3>
         <div class="search-row">
@@ -3635,22 +3768,26 @@
           <div class="chain-bar-row"><span class="chain-bar-name">Ethereum</span>
             <div class="chain-bar-track">
               <div class="chain-bar-fill" data-w="90" style="background:linear-gradient(90deg,#627EEA,#8B9FFF)"></div>
-            </div><span class="chain-bar-score">90</span>
+            </div>
+            <span class="chain-bar-score">90</span>
           </div>
           <div class="chain-bar-row"><span class="chain-bar-name">Polygon</span>
             <div class="chain-bar-track">
               <div class="chain-bar-fill" data-w="100" style="background:linear-gradient(90deg,#8247E5,#A97BFF)"></div>
-            </div><span class="chain-bar-score">100</span>
+            </div>
+            <span class="chain-bar-score">100</span>
           </div>
           <div class="chain-bar-row"><span class="chain-bar-name">BNB Chain</span>
             <div class="chain-bar-track">
               <div class="chain-bar-fill" data-w="45" style="background:linear-gradient(90deg,#F3BA2F,#FFD566)"></div>
-            </div><span class="chain-bar-score">45</span>
+            </div>
+            <span class="chain-bar-score">45</span>
           </div>
           <div class="chain-bar-row"><span class="chain-bar-name">Solana</span>
             <div class="chain-bar-track">
               <div class="chain-bar-fill" data-w="100" style="background:linear-gradient(90deg,#9945FF,#C285FF)"></div>
-            </div><span class="chain-bar-score">100</span>
+            </div>
+            <span class="chain-bar-score">100</span>
           </div>
           <div class="prism-arch-note"><strong>PRISM Architecture:</strong> In a full SOVEREIGN deployment, this score
             drives automatic execution routing — portfolios scoring below 70 trigger proactive state migration to
@@ -3748,8 +3885,7 @@
       <div class="tab-content" id="tab-nfts">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
           <h2 style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text-primary);">NFTs
-            <span id="nftCountBadge" style="font-size:13px;font-weight:400;color:var(--text-muted);"></span>
-          </h2>
+            <span id="nftCountBadge" style="font-size:13px;font-weight:400;color:var(--text-muted);"></span></h2>
         </div>
         <div id="nftGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1.25rem;">
           <div style="padding:3rem;text-align:center;color:var(--text-muted);grid-column:1/-1;">Loading NFTs…</div>
@@ -3830,7 +3966,7 @@
       function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
       resize(); window.addEventListener('resize', resize);
       function Particle() { this.x = Math.random() * w; this.y = Math.random() * h; this.vx = (Math.random() - .5) * .4; this.vy = (Math.random() - .5) * .4; this.r = Math.random() * 1.5 + .5; this.color = COLORS[Math.floor(Math.random() * COLORS.length)]; this.alpha = Math.random() * .25 + .08; }
-      for (var i = 0; i < COUNT; i++)particles.push(new Particle());
+      for (var i = 0; i < COUNT; i++) particles.push(new Particle());
       function animate() {
         ctx.clearRect(0, 0, w, h);
         for (var i = 0; i < particles.length; i++) {
@@ -3859,7 +3995,7 @@
     /* ===== MOBILE MENU ===== */
     document.getElementById('navHamburger').addEventListener('click', function () { document.getElementById('mobileMenu').classList.toggle('open'); });
 
-    /* ===== HERO DASHBOARD 3D CARD (mouse parallax) ===== */
+    /* ===== HERO DASHBOARD 3D CARD ===== */
     (function () {
       var card = document.getElementById('heroDashCard');
       if (!card) return;
@@ -3901,7 +4037,6 @@
         var glow = card.querySelector('.card-glow-spot');
         scene.addEventListener('mousemove', function (e) {
           var rect = scene.getBoundingClientRect();
-          var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
           var fx = (e.clientX - rect.left) / rect.width, fy = (e.clientY - rect.top) / rect.height;
           var rx2 = -(fy - .5) * MAX_ROT * 2, ry2 = (fx - .5) * MAX_ROT * 2;
           card.style.transform = 'rotateX(' + rx2.toFixed(2) + 'deg) rotateY(' + ry2.toFixed(2) + 'deg) translateZ(8px)';
@@ -3973,7 +4108,6 @@
       }, { threshold: .12 });
       cards.forEach(function (c) { cardObs.observe(c); });
 
-      // step connector animation
       var stepsAnim = document.getElementById('stepsAnim');
       if (stepsAnim) {
         var sao = new IntersectionObserver(function (entries) {
@@ -3982,25 +4116,27 @@
         sao.observe(stepsAnim);
       }
 
-      // stat counters
-      var statVals = document.querySelectorAll('.stat-value[data-target]');
-      var so = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) {
-            var el = e.target, target = parseInt(el.getAttribute('data-target')), suffix = el.getAttribute('data-suffix') || '';
-            animCount(el, 0, target, 1400, suffix); so.unobserve(el);
-          }
-        });
-      }, { threshold: .5 });
-      statVals.forEach(function (s) { so.observe(s); });
+      /* ===== PRISM SCORE COUNTER in Stats Bar ===== */
+      var prismStat = document.getElementById('prismStatValue');
+      if (prismStat) {
+        var pso = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              animCount(prismStat, 0, 78, 1600, '/100');
+              pso.unobserve(prismStat);
+            }
+          });
+        }, { threshold: .5 });
+        pso.observe(prismStat);
+      }
 
       function animCount(el, s, end, dur, suf) {
         var st = null;
-        function step(ts) { if (!st) st = ts; var p = Math.min((ts - st) / dur, 1), e2 = 1 - Math.pow(1 - p, 3), cur = Math.round(s + (end - s) * e2); el.textContent = cur.toLocaleString() + suf; if (p < 1) requestAnimationFrame(step); }
+        function step(ts) { if (!st) st = ts; var p = Math.min((ts - st) / dur, 1), e2 = 1 - Math.pow(1 - p, 3), cur = Math.round(s + (end - s) * e2); el.textContent = cur + suf; if (p < 1) requestAnimationFrame(step); }
         requestAnimationFrame(step);
       }
 
-      // PRISM ring animation on scroll
+      /* PRISM ring animation on scroll */
       var prismCard = document.getElementById('prismCard');
       if (prismCard) {
         var po = new IntersectionObserver(function (entries) {
@@ -4265,6 +4401,7 @@
       var bubble = '<div class="' + (role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user') + '">' + escHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</div>';
       div.innerHTML = avatar + bubble; box.appendChild(div); box.scrollTop = box.scrollHeight;
     }
+
     function appendTyping() {
       var box = document.getElementById('chatMessages');
       var id = 'typing-' + Date.now();
@@ -4272,6 +4409,7 @@
       div.innerHTML = '<div class="chat-avatar-ai">🧠</div><div class="chat-bubble-ai"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
       box.appendChild(div); box.scrollTop = box.scrollHeight; return id;
     }
+
     function removeTyping(id) { var el = document.getElementById(id); if (el) el.remove(); }
 
     function searchWallet() {
@@ -4299,18 +4437,21 @@
       if (val >= 1e3) return '$' + val.toLocaleString(undefined, { maximumFractionDigits: 0 });
       return '$' + val.toFixed(2);
     }
+
     function formatAmt(val) {
       if (!val && val !== 0) return '—'; val = parseFloat(val);
       if (val >= 1e6) return (val / 1e6).toFixed(2) + 'M';
       if (val >= 1e3) return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
       if (val >= 1) return val.toFixed(4); return val.toPrecision(4);
     }
+
     function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
     function setLoadingState(loading) {
       var topbar = document.querySelector('.app-status');
       if (topbar) topbar.innerHTML = loading ? '<span class="app-status-dot" style="background:var(--yellow)"></span> Fetching…' : '<span class="app-status-dot"></span> API Online';
     }
+
     function showApiError(msg) {
       var body = document.querySelector('.app-body'); if (!body) return;
       var banner = document.createElement('div');
