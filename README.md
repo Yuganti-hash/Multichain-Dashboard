@@ -2,16 +2,42 @@
 
 Unified crypto portfolio viewer — see all your assets across Ethereum, Polygon, BNB Chain, and Solana in one dashboard.
 
+> **Live demo** → open `frontend/public/landing.html` directly in any browser (no build step needed).
+
+---
+
 ## Features
 
 - 🔗 **Multi-chain support** — Ethereum, Polygon, BNB Chain, Solana
 - 💰 **Live USD prices** via CoinGecko API
 - 🎨 **NFT detection** across all EVM chains
-- 📊 **Interactive charts** — donut pie + bar chart (Recharts)
-- ⚠️  **Risk score** based on chain concentration / diversification
+- 📊 **Interactive charts** — donut pie + bar chart
+- ⚠️ **Risk score** based on chain concentration / diversification
 - 📋 **Transaction history** with direct Etherscan deep-links
-- 🌙 **Full dark theme** — polished, production-quality UI
+- 🧬 **PRISM Health Score** — portfolio resilience scoring (0–100) inspired by SOVEREIGN architecture
+- 🧠 **AI Portfolio Advisor** — AutoGen + GPT-4o-mini with rule-based fallback
 - ⚡ **Fast async backend** — FastAPI + asyncio parallel chain fetching
+
+---
+
+## UI Highlights (v2 — Dark Theme Redesign)
+
+The landing page (`frontend/public/landing.html`) received a complete visual overhaul:
+
+| Feature | Detail |
+|---|---|
+| **Theme** | Deep dark (`#060C1A`) with blue/cyan/purple accent system |
+| **Typography** | Space Grotesk · Syne · Space Mono (Google Fonts) |
+| **Custom cursor** | Dot + lagging ring, colour-shifts on hover; mouse-trail particles |
+| **Particle canvas** | 80-particle interactive field — repels from cursor |
+| **Hero animations** | Word-by-word headline reveal, parallax orbs, floating rings |
+| **Ticker strip** | Live-style scrolling price/stat marquee below the hero |
+| **3D tilt cards** | Feature cards, hero card, PRISM card, and all app cards use `preserve-3d` mouse-tilt |
+| **Scroll reveals** | `.sr-section`, `.reveal-left/right/scale` driven by IntersectionObserver |
+| **Glassmorphism nav** | `backdrop-filter: blur(20px)` navbar that darkens on scroll |
+| **Gradient fills** | All progress bars, chain icons, and buttons use multi-stop gradients |
+| **Animated step connector** | Progress line between "How it works" steps animates in on scroll |
+| **Responsive** | Full mobile breakpoints at 768 px and 480 px |
 
 ---
 
@@ -44,24 +70,25 @@ If either chain fails, your financial state has a problem.
 - Chain-agnostic transaction execution via PRISM Execution Router
 - Jurisdiction-specific compliance proofs (VERTEX integration)
 
-### How the Risk + PRISM Score Work Together
-
 ---
 
 ## Tech Stack
 
-| Layer      | Technology                                  |
-|------------|---------------------------------------------|
-| Frontend   | React 18, TailwindCSS, Recharts, Axios      |
-| Backend    | Python 3.11+, FastAPI, Uvicorn, httpx       |
-| Data APIs  | Moralis (EVM), Helius (Solana), CoinGecko   |
-| Deploy     | Vercel (frontend), Railway (backend)        |
+| Layer | Technology |
+|---|---|
+| Landing / App shell | Vanilla HTML · CSS · JS (`landing.html`) — zero build step |
+| Fonts | Space Grotesk · Syne · Space Mono (Google Fonts) |
+| Icons | Tabler Icons webfont |
+| Backend | Python 3.11+, FastAPI, Uvicorn, httpx |
+| Data APIs | Moralis (EVM), Helius (Solana), CoinGecko |
+| AI Advisor | AutoGen + GPT-4o-mini (rule-based fallback) |
+| Deploy | Vercel (frontend), Railway (backend) |
 
 ---
 
 ## Prerequisites
 
-- **Node.js** 18+
+- **Node.js** 18+ *(only needed if you use the React `src/` components)*
 - **Python** 3.11+
 - API keys for **Moralis**, **Helius**, and optionally **CoinGecko**
 
@@ -72,11 +99,19 @@ If either chain fails, your financial state has a problem.
 ### 1. Clone & enter the project
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Yuganti-hash/Multichain-Dashboard.git
 cd multichain-dashboard
 ```
 
-### 2. Backend setup
+### 2. Open the landing page (no build needed)
+
+```bash
+# Just open in your browser — works without any server
+start frontend/public/landing.html   # Windows
+open  frontend/public/landing.html   # macOS
+```
+
+### 3. Backend setup
 
 ```bash
 cd backend
@@ -104,22 +139,6 @@ curl http://localhost:8000/health
 # Expected: {"status":"ok","version":"1.0.0"}
 ```
 
-### 3. Frontend setup
-
-```bash
-cd ../frontend
-
-# Install dependencies
-npm install
-
-# Point the frontend at the local backend
-echo "REACT_APP_API_URL=http://localhost:8000" > .env
-
-# Start the dev server
-npm start
-# Opens automatically at http://localhost:3000
-```
-
 ### 4. Test with a real wallet
 
 Paste Vitalik's public address into the search bar:
@@ -132,21 +151,21 @@ Paste Vitalik's public address into the search bar:
 
 ## API Endpoints
 
-| Method | Endpoint                          | Description                          |
-|--------|-----------------------------------|--------------------------------------|
-| GET    | `/health`                         | Health check — returns version info  |
-| GET    | `/portfolio/{wallet_address}`     | Full multi-chain portfolio data      |
-| GET    | `/transactions/{wallet_address}`  | Last 10 Ethereum transactions        |
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/health` | Health check — returns version info |
+| GET | `/portfolio/{wallet_address}` | Full multi-chain portfolio data |
+| GET | `/transactions/{wallet_address}` | Last 10 Ethereum transactions |
 
 ---
 
 ## Environment Variables
 
-| Variable            | Required | Description                                              |
-|---------------------|----------|----------------------------------------------------------|
-| `MORALIS_API_KEY`   | ✅ Yes   | Moralis Web3 API key — EVM chain data                    |
-| `HELIUS_API_KEY`    | ✅ Yes   | Helius Solana API key — SPL token balances               |
-| `COINGECKO_API_KEY` | ⚪ No    | CoinGecko Pro key — free tier works without it           |
+| Variable | Required | Description |
+|---|---|---|
+| `MORALIS_API_KEY` | ✅ Yes | Moralis Web3 API key — EVM chain data |
+| `HELIUS_API_KEY` | ✅ Yes | Helius Solana API key — SPL token balances |
+| `COINGECKO_API_KEY` | ⚪ No | CoinGecko Pro key — free tier works without it |
 
 ---
 
@@ -156,34 +175,21 @@ Paste Vitalik's public address into the search bar:
 multichain-dashboard/
 ├── backend/
 │   ├── chains/
-│   │   ├── __init__.py
 │   │   ├── ethereum.py        # Moralis EVM — ETH balance, ERC-20, NFTs, txns
 │   │   ├── polygon.py         # Moralis EVM — MATIC balance, ERC-20, NFTs
 │   │   ├── bsc.py             # Moralis EVM — BNB balance, BEP-20
 │   │   └── solana.py          # Helius + Solana RPC — SOL balance, SPL tokens
 │   ├── utils/
-│   │   ├── __init__.py
 │   │   ├── prices.py          # CoinGecko live USD prices
 │   │   └── risk.py            # Chain diversification risk scoring
+│   ├── ai_advisor.py          # AutoGen AI advisor agent
 │   ├── main.py                # FastAPI app — /portfolio, /transactions, /health
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── SearchBar.js          # Wallet address input with validation
-│   │   │   ├── PortfolioSummary.js   # 4-stat card grid + risk badge
-│   │   │   ├── ChainBreakdown.js     # Per-chain value cards + progress bars
-│   │   │   ├── TokenTable.js         # Sortable/filterable token table
-│   │   │   ├── TransactionHistory.js # Recent txns with Etherscan links
-│   │   │   ├── PieChart.js           # Recharts donut chart
-│   │   │   └── BarChart.js           # Recharts bar chart (top 10 tokens)
-│   │   ├── services/
-│   │   │   └── api.js                # Axios instance + API helpers + formatters
-│   │   ├── App.js                    # Root app shell — state, tabs, layout
-│   │   └── index.js                  # React 18 createRoot entry point
 │   ├── public/
-│   │   └── index.html
+│   │   └── landing.html       # ★ Self-contained landing + dashboard (no build)
+│   ├── src/                   # React components (optional / legacy)
 │   ├── package.json
 │   └── tailwind.config.js
 └── README.md
@@ -212,15 +218,17 @@ multichain-dashboard/
    - `REACT_APP_API_URL` = `<your Railway backend URL>`
 4. Click **Deploy**
 
+> **Tip:** `landing.html` is fully self-contained and can also be served as a static file on any CDN — no Node.js or build tooling required.
+
 ---
 
 ## Getting API Keys
 
-| Provider   | Sign-up URL                                      | Free Tier                        |
-|------------|--------------------------------------------------|----------------------------------|
-| Moralis    | https://admin.moralis.io/                        | 40,000 requests/month            |
-| Helius     | https://dev.helius.xyz/                          | 100,000 requests/month           |
-| CoinGecko  | https://www.coingecko.com/en/api                 | Public free tier (no key needed) |
+| Provider | Sign-up URL | Free Tier |
+|---|---|---|
+| Moralis | https://admin.moralis.io/ | 40,000 requests/month |
+| Helius | https://dev.helius.xyz/ | 100,000 requests/month |
+| CoinGecko | https://www.coingecko.com/en/api | Public free tier (no key needed) |
 
 ---
 
