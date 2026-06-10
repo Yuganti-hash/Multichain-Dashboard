@@ -69,11 +69,18 @@ def format_tvl(tvl: float) -> str:
 # Public function
 # ---------------------------------------------------------------------------
 
-def calculate_routing(chain_breakdown: list[dict], prism_health: dict, lumina_data: dict) -> dict:
+def calculate_routing(
+    chain_breakdown: list[dict],
+    prism_health: dict,
+    lumina_data: dict,
+    chain_health: dict | None = None,
+) -> dict:
     """
     Calculate the execution router rankings and best routing path.
 
     Only chains where the wallet holds a non-zero allocation are evaluated.
+    Chains reported as is_healthy=False in chain_health are hard-excluded
+    from ranking so PRISM never routes a transaction to a downed chain.
 
     Parameters
     ----------
@@ -83,6 +90,10 @@ def calculate_routing(chain_breakdown: list[dict], prism_health: dict, lumina_da
         PRISM health score. Must contain: { chain_scores: { chain: score } }.
     lumina_data : dict
         Liquidity (TVL) data per chain from LUMINA / DeFiLlama.
+    chain_health : dict | None
+        Real-time per-chain health snapshot from chain_monitor.
+        Each entry: { chain: { is_healthy: bool, latency_ms: float, ... } }.
+        When provided, any chain with is_healthy=False is excluded before ranking.
 
     Returns
     -------
@@ -126,6 +137,33 @@ def calculate_routing(chain_breakdown: list[dict], prism_health: dict, lumina_da
             "chain_rankings": [],
             "recommendation": "No assets detected across any chain. Deposit funds to enable execution routing.",
         }
+
+    # ------------------------------------------------------------------
+    # 3b. Hard-exclude chains that are currently down (is_healthy=False).
+    #     We default to True (healthy) when chain_health is absent or when
+    #     a chain has no entry — erring on the side of inclusion.
+    # ------------------------------------------------------------------
+    if chain_health:
+        failed_chains = {
+            ch for ch, data in chain_health.items()
+            if isinstance(data, dict) and data.get("is_healthy") is False
+        }
+        if failed_chains:
+            active_chains = [ch for ch in active_chains if ch not in failed_chains]
+
+        # If every chain with assets is currently down, fall back gracefully.
+        if not active_chains:
+            failed_names = ", ".join(
+                ch.capitalize() for ch in failed_chains
+            )
+            return {
+                "best_chain": None,
+                "chain_rankings": [],
+                "recommendation": (
+                    f"All chains with assets ({failed_names}) are currently "
+                    "unhealthy. Routing suspended until at least one chain recovers."
+                ),
+            }
 
     # ------------------------------------------------------------------
     # 4. Fetch health scores from prism_health

@@ -9,11 +9,22 @@
  *   - Wallet search → sequential portfolio + transaction fetches
  *   - Tab-based dashboard layout (Overview / Tokens / NFTs / Transactions)
  *   - Welcome state, loading skeleton, and error display
+ *
+ * Wallet connect + verification:
+ *   - Reads connected address via wagmi's useAccount hook
+ *   - On connect: prompts MetaMask to sign a challenge message (EIP-191)
+ *   - POSTs signed payload to POST /verify-wallet on the backend
+ *   - Only auto-fetches portfolio when backend confirms ownership
+ *   - If user rejects signing: shows a clear error, never fetches
+ *   - Resets all state (including isVerified) on disconnect
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useAccount, useSignMessage } from "wagmi";
+import { requestSignature, verifyWithBackend } from "./services/auth";
 
 import SearchBar          from "./components/SearchBar";
+import GasEstimator       from "./components/GasEstimator";
 import PortfolioSummary   from "./components/PortfolioSummary";
 import ChainBreakdown     from "./components/ChainBreakdown";
 import TokenTable         from "./components/TokenTable";
@@ -25,8 +36,12 @@ import StateMachine       from "./components/StateMachine";
 import AiAdvisor          from "./components/AiAdvisor";
 import ExecutionRouter    from "./components/ExecutionRouter";
 import ResilienceDashboard from "./components/ResilienceDashboard";
+import ChainHealthWidget   from "./components/ChainHealthWidget";
+import PrismStateCard      from "./components/PrismStateCard";
+import ErrorBoundary       from "./components/ErrorBoundary";
 
 import { fetchPortfolio, fetchTransactions, checkHealth } from "./services/api";
+import { useChainHealth } from "./hooks/useChainHealth";
 
 // ---------------------------------------------------------------------------
 // Chain metadata used in the welcome state
@@ -206,6 +221,23 @@ export default function App() {
   const [apiStatus,     setApiStatus]     = useState("checking"); // "ok" | "error" | "checking"
   const [activeTab,     setActiveTab]     = useState("overview");
   const [failedNftKeys, setFailedNftKeys] = useState(new Set());
+  /** True once the backend has confirmed the connected wallet's signature. */
+  const [isVerified,    setIsVerified]    = useState(false);
+  /** True while the MetaMask sign dialog is open / backend is verifying. */
+  const [signLoading,   setSignLoading]   = useState(false);
+
+  // ── Live chain health (WebSocket → poll fallback) ——————————————
+  // The hook owns the live feed. We merge it with portfolio.chain_health so
+  // the UI shows something immediately on first page load (before the first
+  // WS frame arrives) and switches to live data as soon as it does.
+  const { chainHealth: wsChainHealth, isLive, isPolling } = useChainHealth();
+  const chainHealth = wsChainHealth ?? portfolio?.chain_health ?? null;
+
+  // ── Wallet (RainbowKit / wagmi) ────────────────────────────────────────────
+  const { address: connectedAddress, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  /** Track previous connection state so we only fire on the connect edge. */
+  const prevConnectedRef = useRef(false);
 
   // ── Effects ───────────────────────────────────────────────────────────────
 
@@ -216,6 +248,73 @@ export default function App() {
       setApiStatus(health.status === "ok" ? "ok" : "error");
     })();
   }, []);
+
+  /**
+   * Sign → Verify → Fetch flow.
+   *
+   * Fires only on the disconnected → connected edge (prevConnectedRef guard).
+   *
+   * Steps:
+   *   1. Ask MetaMask / RainbowKit to sign the SIGN_MESSAGE challenge.
+   *   2. POST the signature to POST /verify-wallet on the backend.
+   *   3. Only fetch portfolio if the backend confirms the signature is valid.
+   *
+   * User rejects sign dialog → friendly error, no fetch.
+   * Backend returns invalid  → error shown, no fetch.
+   * Wallet disconnects       → all state (including isVerified) is reset.
+   */
+  useEffect(() => {
+    const wasConnected = prevConnectedRef.current;
+    prevConnectedRef.current = isConnected;
+
+    if (isConnected && connectedAddress && !wasConnected) {
+      // ── Wallet just connected: sign → verify → fetch ──────────────────
+      (async () => {
+        setSignLoading(true);
+        setError(null);
+
+        let payload;
+        try {
+          // Step 1 — open MetaMask sign dialog
+          payload = await requestSignature(connectedAddress, signMessageAsync);
+        } catch (signErr) {
+          // User clicked "Reject" in MetaMask (code 4001) or signing failed
+          setError("Please sign to verify wallet ownership");
+          setSignLoading(false);
+          return;
+        }
+
+        // Step 2 — confirm with backend ecrecover
+        const verified = await verifyWithBackend(
+          payload.address,
+          payload.message,
+          payload.signature,
+        );
+
+        setSignLoading(false);
+
+        if (!verified) {
+          setError("Wallet verification failed. Please reconnect and try again.");
+          setIsVerified(false);
+          return;
+        }
+
+        // Step 3 — verified: auto-load portfolio
+        setIsVerified(true);
+        handleSearch(connectedAddress);
+      })();
+
+    } else if (!isConnected && wasConnected) {
+      // ── Wallet disconnected — reset all dashboard state ───────────────
+      setPortfolio(null);
+      setTransactions(null);
+      setWalletAddress("");
+      setError(null);
+      setActiveTab("overview");
+      setFailedNftKeys(new Set());
+      setIsVerified(false);
+    }
+  }, [isConnected, connectedAddress, handleSearch, signMessageAsync]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -257,19 +356,44 @@ export default function App() {
       error:    { color: "bg-red-500",    label: "API Offline", ring: "shadow-red-500/50" },
       checking: { color: "bg-yellow-400", label: "Checking...", ring: "shadow-yellow-400/50" },
     };
-    const { color, label, ring } = states[apiStatus] || states.checking;
+    const { color, label } = states[apiStatus] || states.checking;
+
+    // Chain feed pill—shown only when portfolio has been loaded
+    const feedPill = isLive
+      ? { bg: "#052e1644", border: "#22c55e55", text: "#22c55e", dot: "#22c55e", label: "\u25cf Live" }
+      : isPolling
+      ? { bg: "#451a0344", border: "#f59e0b55", text: "#f59e0b", dot: "#f59e0b", label: "\u25cf Polling" }
+      : null;
 
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <span
-          className={`relative flex h-2 w-2`}
-        >
+      <div className="flex items-center gap-3 text-sm text-gray-400">
+
+        {/* API status dot */}
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${color} opacity-75`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${color}`} />
+          </span>
+          {label}
+        </div>
+
+        {/* Chain feed indicator pill */}
+        {feedPill && (
           <span
-            className={`animate-ping absolute inline-flex h-full w-full rounded-full ${color} opacity-75`}
-          />
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${color}`} />
-        </span>
-        {label}
+            style={{
+              fontSize:        '11px',
+              fontWeight:      600,
+              padding:         '2px 8px',
+              borderRadius:    '9999px',
+              backgroundColor: feedPill.bg,
+              border:          `1px solid ${feedPill.border}`,
+              color:           feedPill.text,
+              letterSpacing:   '0.02em',
+            }}
+          >
+            {feedPill.label}
+          </span>
+        )}
       </div>
     );
   };
@@ -283,6 +407,7 @@ export default function App() {
   });
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-gray-950 text-white">
 
       {/* ================================================================
@@ -333,6 +458,18 @@ export default function App() {
 
         {/* Search bar — always visible */}
         <SearchBar onSearch={handleSearch} loading={loading} />
+
+        {/* Gas estimator — always visible, auto-refreshes every 30s */}
+        <GasEstimator />
+
+        {/* Chain Telemetry — always visible, driven by live WebSocket / poll feed */}
+        <div className="mt-4">
+          <ChainHealthWidget
+            chainHealth={chainHealth}
+            isLive={isLive}
+            isPolling={isPolling}
+          />
+        </div>
 
         {/* ── Error state ─────────────────────────────────────────────── */}
         {error && (
@@ -429,7 +566,10 @@ export default function App() {
                 </div>
 
                 {portfolio.prism_health && (
-                  <PrismHealth prismHealth={portfolio.prism_health} />
+                  <PrismHealth
+                    prismHealth={portfolio.prism_health}
+                    chainHealth={chainHealth}
+                  />
                 )}
 
                 {portfolio.router && (
@@ -437,10 +577,20 @@ export default function App() {
                 )}
 
                 {portfolio.state_machine && (
-                  <StateMachine stateMachine={portfolio.state_machine} />
+                  <StateMachine
+                    stateMachine={portfolio.state_machine}
+                    chainHealth={chainHealth}
+                  />
                 )}
 
-                <ChainBreakdown chainBreakdown={portfolio.chain_breakdown} />
+                {portfolio.prism_state && (
+                  <PrismStateCard prismState={portfolio.prism_state} />
+                )}
+
+                <ChainBreakdown
+                  chainBreakdown={portfolio.chain_breakdown}
+                  chainHealth={chainHealth}
+                />
               </div>
             )}
 
@@ -563,6 +713,7 @@ export default function App() {
                 <ResilienceDashboard
                   stateMachine={portfolio.state_machine}
                   prismHealth={portfolio.prism_health}
+                  chainHealth={chainHealth}
                 />
               </div>
             )}
@@ -668,5 +819,6 @@ export default function App() {
         <span className="text-gray-500">CoinGecko</span>
       </footer>
     </div>
+    </ErrorBoundary>
   );
 }

@@ -21,9 +21,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 # ---------------------------------------------------------------------------
 # Chain modules — each exposes get_portfolio() and get_transactions()
@@ -39,10 +43,27 @@ from utils import compliance
 from utils import lumina
 from utils import router
 from utils import prism_state as prism_state_util
+from utils.auth import verify_signature
+from utils.gas          import get_gas_estimates
+from utils.chain_monitor import get_chain_health, get_all_chains_health
 from ai_advisor import ask_advisor, is_advisor_ready
+from database import close_db, init_db
 from state_machine import StateMachine
 
 # (load_dotenv() already called above, before chain imports)
+
+# ---------------------------------------------------------------------------
+# Rate limiter — 30 requests / minute per IP
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address, default_limits=["30/minute"])
+
+# ---------------------------------------------------------------------------
+# API Key — read from environment
+# ---------------------------------------------------------------------------
+SOVEREIGN_API_KEY: str | None = os.getenv("SOVEREIGN_API_KEY")
+
+# Routes that bypass API key auth (FastAPI internal + health check + gas + WS)
+_AUTH_SKIP_PREFIXES = ("/health", "/docs", "/openapi", "/redoc", "/gas", "/chain-health", "/ws")
 
 # ---------------------------------------------------------------------------
 # App initialisation
@@ -53,26 +74,97 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Attach limiter to app state (required by slowapi)
+app.state.limiter = limiter
+app.add_exception_handler(
+    RateLimitExceeded,
+    lambda req, exc: JSONResponse(
+        status_code=429,
+        content={"error": "Rate limit exceeded. Max 30 requests/minute per IP."},
+    ),
+)
+
 # ---------------------------------------------------------------------------
-# CORS — allow all origins in development.
-# Tighten this to specific frontend origins before going to production.
+# CORS — restricted to known frontend origins.
+# In production, set ALLOWED_ORIGINS in .env as a comma-separated list:
+#   ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
 # ---------------------------------------------------------------------------
+_env_origins = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = (
+    [o.strip() for o in _env_origins.split(",") if o.strip()]
+    if _env_origins
+    else [
+        "http://localhost:3000",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # All origins allowed (dev only)
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
 
 # ---------------------------------------------------------------------------
-# Startup event
+# API Key Authentication middleware
+# Checks every request for a valid X-API-Key header.
+# Skips auth for /health, /docs, /openapi, and /redoc.
+# ---------------------------------------------------------------------------
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    # Allow unauthenticated access to health + docs routes
+    if request.url.path.startswith(_AUTH_SKIP_PREFIXES):
+        return await call_next(request)
+
+    # If no key is configured in .env, skip enforcement (dev convenience)
+    if not SOVEREIGN_API_KEY:
+        return await call_next(request)
+
+    provided_key = request.headers.get("X-API-Key", "")
+    if provided_key != SOVEREIGN_API_KEY:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Unauthorized. Provide a valid X-API-Key header."},
+        )
+
+    return await call_next(request)
+
+
+# ---------------------------------------------------------------------------
+# Startup / Shutdown lifecycle
 # ---------------------------------------------------------------------------
 @app.on_event("startup")
 async def on_startup():
-    """Print a startup banner so operators know the server is live."""
+    """
+    Application startup handler.
+
+    1. Attempts to create all DB tables if they don't exist (dev/CI convenience).
+       Fails gracefully — the app will start even if PostgreSQL is unavailable.
+       In production, run `alembic upgrade head` before starting the server.
+    2. Prints a startup banner for operator visibility.
+    """
+    try:
+        await init_db()
+        print("Database initialised successfully.")
+    except Exception as e:
+        print(f"[startup] DB unavailable: {e} — running without database.")
+        print("[startup] To enable persistence, set DATABASE_URL in .env and start Postgres.")
     print("MultiChain Dashboard API running on port 8000")
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    """
+    Application shutdown handler.
+
+    Gracefully disposes the SQLAlchemy async connection pool
+    so all in-flight connections are closed cleanly.
+    """
+    await close_db()
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +193,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ROUTE 1 — GET /portfolio/{wallet_address}
 # ===========================================================================
 @app.get("/portfolio/{wallet_address}", summary="Get full multi-chain portfolio")
-async def get_portfolio(wallet_address: str):
+@limiter.limit("30/minute")
+async def get_portfolio(request: Request, wallet_address: str):
     """
     Aggregate the portfolio for a given wallet across all supported chains.
 
@@ -116,16 +209,23 @@ async def get_portfolio(wallet_address: str):
     """
     try:
         # ------------------------------------------------------------------
-        # Step 1 — Fetch all four chains in parallel.
+        # Step 1 — Fetch all four chains + Ethereum tx history in parallel.
         # Each get_portfolio() returns:
         #   { "chain": str, "tokens": list, "nfts": list, "native_balance": float }
+        # ethereum.get_transactions() is fetched here so tx_count is available
+        # for the CREDEX credit score without a separate round-trip.
         # ------------------------------------------------------------------
-        eth_data, poly_data, bsc_data, sol_data, arb_data = await asyncio.gather(
+        (
+            eth_data, poly_data, bsc_data, sol_data, arb_data,
+            transactions, chain_health,
+        ) = await asyncio.gather(
             ethereum.get_portfolio(wallet_address),
             polygon.get_portfolio(wallet_address),
             bsc.get_portfolio(wallet_address),
             solana.get_portfolio(wallet_address),
             arbitrum.get_portfolio(wallet_address),
+            ethereum.get_transactions(wallet_address, limit=50),
+            get_all_chains_health(),          # ← real-time chain health
         )
 
         all_chains: list[dict] = [eth_data, poly_data, bsc_data, sol_data, arb_data]
@@ -218,10 +318,32 @@ async def get_portfolio(wallet_address: str):
         # PRISM health score — chain-agnostic resilience rating
         prism_health = risk_util.calculate_prism_health_score(chain_breakdown, all_tokens)
 
+        # ------------------------------------------------------------------
+        # Enrich PRISM chain_scores with real network health data.
+        # If a chain is live-unhealthy (is_healthy=False) its PRISM score is
+        # capped at 40; latency above 2 000 ms applies a proportional penalty.
+        # ------------------------------------------------------------------
+        enriched_chain_scores: dict = dict(prism_health["chain_scores"])
+        for ch_name, ch_data in chain_health.items():
+            if ch_name not in enriched_chain_scores:
+                continue
+            base_score: int = enriched_chain_scores[ch_name]
+            if not ch_data.get("is_healthy", True):
+                # Chain is down or unhealthy — hard cap at 40
+                base_score = min(base_score, 40)
+            else:
+                lat = ch_data.get("latency_ms", 0.0)
+                if lat > 2_000:
+                    # Proportional latency penalty: -1 pt per 100 ms over 2 s
+                    penalty = int((lat - 2_000) / 100)
+                    base_score = max(0, base_score - penalty)
+            enriched_chain_scores[ch_name] = base_score
+        prism_health = {**prism_health, "chain_scores": enriched_chain_scores}
+
         # CREDEX On-Chain Credit Score
-        # Note: transaction history is fetched separately via /transactions endpoint
-        # to keep portfolio response fast. Credit score uses token diversity only.
-        credit_score = risk_util.calculate_credit_score(all_tokens, [])
+        # transactions is fetched concurrently in Step 1 above (limit=50).
+        # Passing real tx data activates component E (+0–150) in the scorer.
+        credit_score = risk_util.calculate_credit_score(all_tokens, transactions)
 
 
         # Build Protocol Resilient Interoperable State Machine
@@ -229,44 +351,53 @@ async def get_portfolio(wallet_address: str):
             wallet=wallet_address,
             chain_breakdown=chain_breakdown,
             prism_health=prism_health,
+            chain_health=chain_health,   # ← real is_healthy / latency_ms data
         )
         state_machine = sm.to_dict()
 
         # PRISM Execution Router
-        router_data = router.calculate_routing(chain_breakdown, prism_health, lumina_data)
+        router_data = router.calculate_routing(chain_breakdown, prism_health, lumina_data, chain_health)
 
         # Chain-agnostic PRISM State Object
+        # Assemble the portfolio_data bundle that prism_state needs.
+        _portfolio_snapshot = {
+            "total_value_usd": total_value_usd,
+            "risk_score":      risk_score,
+            "credit_score":    credit_score,
+            "chain_breakdown": chain_breakdown,
+            "prism_health":    prism_health,
+        }
         prism_state_obj = prism_state_util.build_prism_state(
             wallet=wallet_address,
-            total_value_usd=total_value_usd,
-            risk_score=risk_score,
-            credit_score=credit_score,
-            router_data=router_data,
+            portfolio_data=_portfolio_snapshot,
+            chain_health=chain_health,
         )
 
         # ------------------------------------------------------------------
         # Final response
         # ------------------------------------------------------------------
         return {
-            "wallet":          wallet_address,
-            "total_value_usd": round(total_value_usd, 2),
-            "risk_score":      risk_score,
-            "vertex":          vertex,
-            "prism_health":    prism_health,
-            "credit_score":    credit_score,
-            "lumina":          lumina_data,
-            "zk_proof":        compliance.generate_zk_proof(
-                                   wallet_address,
-                                   total_value_usd,
-                                   risk_score,
-                               ),
-            "chain_breakdown": chain_breakdown,
-            "tokens":          all_tokens,
-            "nfts":            all_nfts,
-            "prices":          prices,
-            "state_machine":   state_machine,
-            "router":          router_data,
-            "prism_state":     prism_state_obj,
+            "wallet":            wallet_address,
+            "total_value_usd":   round(total_value_usd, 2),
+            "transaction_count": len(transactions),
+            "risk_score":        risk_score,
+            "vertex":            vertex,
+            "prism_health":      prism_health,
+            "credit_score":      credit_score,
+            "lumina":            lumina_data,
+            "zk_proof":          compliance.generate_zk_proof(
+                                     wallet_address,
+                                     total_value_usd,
+                                     risk_score,
+                                 ),
+            "chain_breakdown":   chain_breakdown,
+            "tokens":            all_tokens,
+            "nfts":              all_nfts,
+            "prices":            prices,
+            "state_machine":     state_machine,
+            "router":            router_data,
+            "prism_state":       prism_state_obj,
+            "chain_health":      chain_health,    # ← real-time per-chain health
         }
 
     except HTTPException:
@@ -287,7 +418,8 @@ async def get_portfolio(wallet_address: str):
 # ROUTE 2 — GET /transactions/{wallet_address}
 # ===========================================================================
 @app.get("/transactions/{wallet_address}", summary="Get recent Ethereum transactions")
-async def get_transactions(wallet_address: str):
+@limiter.limit("30/minute")
+async def get_transactions(request: Request, wallet_address: str):
     """
     Return the last 10 Ethereum transactions for the given wallet.
 
@@ -320,7 +452,8 @@ async def get_transactions(wallet_address: str):
 # ROUTE 3 — GET /health
 # ===========================================================================
 @app.get("/health", summary="Health check")
-async def health_check():
+@limiter.limit("30/minute")
+async def health_check(request: Request):
     """
     Simple health-check endpoint.
     Returns 200 OK with the API version — useful for load balancers and monitoring.
@@ -329,10 +462,207 @@ async def health_check():
 
 
 # ===========================================================================
+# ROUTE 3b — GET /gas
+# ===========================================================================
+@app.get("/gas", summary="Current Ethereum gas price estimates")
+@limiter.limit("20/minute")
+async def get_gas(request: Request):
+    """
+    Return slow / normal / fast gas estimates for a standard ETH transfer.
+
+    This endpoint is **public** (no X-API-Key required) — gas prices are
+    not sensitive and caching them client-side is encouraged.
+
+    Data sources
+    ------------
+    - Base fee   : eth_getBlockByNumber via Cloudflare public RPC
+    - ETH price  : CoinGecko simple-price API (free tier)
+
+    Falls back to pre-set sentinel values if either source is unreachable
+    so this endpoint never returns a 5xx.
+
+    Returns
+    -------
+    JSON object with three speed tiers, each containing:
+      - ``gwei``    : gas price in Gwei (float)
+      - ``usd``     : estimated USD cost for a 21 000-gas transfer (float)
+      - ``minutes`` : expected inclusion time in minutes (float)
+    """
+    estimates = await get_gas_estimates()
+    return estimates
+
+
+# ===========================================================================
+# ROUTE 3c — GET /chain-health   (public, 10/min)
+# ===========================================================================
+_VALID_CHAINS = frozenset({"ethereum", "polygon", "arbitrum", "solana", "bsc"})
+
+
+@app.get("/chain-health", summary="Real-time health for all supported chains")
+@limiter.limit("10/minute")
+async def get_all_chains_health_route(request: Request):
+    """
+    Return a live health snapshot for all five supported chains concurrently.
+
+    No authentication required — chain health is public information.
+
+    Response shape
+    --------------
+    {
+      "ethereum": {
+        "chain": str,
+        "block_number": int,
+        "block_time_seconds": float,
+        "gas_price_gwei": float,
+        "is_healthy": bool,
+        "latency_ms": float,
+        "last_updated": str           # ISO-8601 UTC
+      },
+      "polygon":  { ... },
+      "arbitrum": { ... },
+      "solana":   { ... },
+      "bsc":      { ... }
+    }
+    """
+    return await get_all_chains_health()
+
+
+# ===========================================================================
+# ROUTE 3d — GET /chain-health/{chain}   (public, 20/min)
+# ===========================================================================
+@app.get("/chain-health/{chain}", summary="Real-time health for a single chain")
+@limiter.limit("20/minute")
+async def get_single_chain_health_route(request: Request, chain: str):
+    """
+    Return a live health snapshot for *one* chain.
+
+    Path parameter
+    --------------
+    chain : one of ``ethereum``, ``polygon``, ``arbitrum``, ``solana``, ``bsc``
+
+    Raises
+    ------
+    400 Bad Request — if an unsupported chain name is supplied.
+
+    No authentication required.
+    """
+    chain_key = chain.lower().strip()
+    if chain_key not in _VALID_CHAINS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unknown chain '{chain}'. "
+                f"Valid options: {', '.join(sorted(_VALID_CHAINS))}"
+            ),
+        )
+    return await get_chain_health(chain_key)
+
+
+# ===========================================================================
+# ROUTE 3e — WebSocket /ws/chain-health   (public, no rate-limit)
+# ===========================================================================
+
+# Broadcast interval — how often the server pushes fresh data (seconds)
+_WS_PUSH_INTERVAL: int = 15
+
+
+@app.websocket("/ws/chain-health")
+async def ws_chain_health(websocket: WebSocket):
+    """
+    WebSocket endpoint that streams real-time chain health to a single client.
+
+    Protocol
+    --------
+    1. Server accepts the connection immediately.
+    2. Server sends the full health snapshot as JSON right away.
+    3. Server loops: waits _WS_PUSH_INTERVAL seconds, fetches fresh health,
+       sends the JSON payload, repeats.
+    4. On WebSocketDisconnect (client closed tab / navigated away) the loop
+       exits cleanly with no exception propagating.
+
+    No authentication required — chain health is public information.
+    No rate-limiting — the push interval is server-controlled.
+    """
+    await websocket.accept()
+    try:
+        while True:
+            snapshot = await get_all_chains_health()
+            await websocket.send_json(snapshot)
+            # Wait for the next push interval, but wake immediately if the
+            # client disconnects (asyncio.sleep raises CancelledError on task
+            # cancellation, which is caught by WebSocketDisconnect handling).
+            await asyncio.sleep(_WS_PUSH_INTERVAL)
+    except WebSocketDisconnect:
+        # Client closed the connection — exit silently
+        pass
+    except Exception:
+        # Any other error (network blip, serialisation fault) — close cleanly
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+
+# ===========================================================================
+# ROUTE 4b — POST /verify-wallet
+# ===========================================================================
+
+class WalletVerifyRequest(BaseModel):
+    """
+    Request body for POST /verify-wallet.
+
+    Fields
+    ------
+    address   : Ethereum address claiming ownership (0x-prefixed, 42 chars).
+    message   : Plain-text message the user signed on the frontend.
+    signature : Hex-encoded EIP-191 personal_sign output (0x-prefixed).
+    """
+    address:   str
+    message:   str
+    signature: str
+
+
+@app.post("/verify-wallet", summary="Verify wallet ownership via EIP-191 signature")
+@limiter.limit("10/minute")
+async def verify_wallet(request: Request, body: WalletVerifyRequest):
+    """
+    Verify that the caller owns the Ethereum wallet at ``address``.
+
+    The frontend should:
+      1. Prompt the user to sign the ``SIGN_MESSAGE`` env-var string
+         (or any agreed message) via MetaMask / RainbowKit ``signMessage``.
+      2. POST the raw address, the signed message text, and the resulting
+         hex signature to this endpoint.
+
+    Returns
+    -------
+    200 { verified: true,  address: str }           — signature valid
+    401 { verified: false, error:   str }           — signature invalid
+    """
+    is_valid = verify_signature(
+        address=body.address,
+        message=body.message,
+        signature=body.signature,
+    )
+
+    if is_valid:
+        return {
+            "verified": True,
+            "address":  body.address,
+        }
+
+    raise HTTPException(
+        status_code=401,
+        detail={"verified": False, "error": "Signature verification failed. Address mismatch or invalid signature."},
+    )
+
+
+# ===========================================================================
 # ROUTE 4 — POST /ai/analyze
 # ===========================================================================
 @app.post("/ai/analyze", summary="AI portfolio analysis")
-async def ai_analyze(request: dict):
+@limiter.limit("30/minute")
+async def ai_analyze(request: Request):
     """
     AI portfolio analysis endpoint.
     Powered by JULIUS-inspired AutoGen agent architecture.
@@ -343,9 +673,10 @@ async def ai_analyze(request: dict):
         "conversation_history": list  # optional, list of {role, content}
     }
     """
-    question             = request.get("question", "").strip()
-    portfolio_data       = request.get("portfolio_data", {})
-    conversation_history = request.get("conversation_history", [])
+    body                 = await request.json()
+    question             = body.get("question", "").strip()
+    portfolio_data       = body.get("portfolio_data", {})
+    conversation_history = body.get("conversation_history", [])
 
     if not question:
         raise HTTPException(status_code=400, detail="question is required")

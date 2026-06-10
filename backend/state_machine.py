@@ -10,7 +10,7 @@ health, and generates automatic migration plans when chains degrade or fail.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -96,17 +96,23 @@ class StateMachine:
       - A migration plan (if any chains are at risk)
     """
 
+    # Latency threshold above which a chain is considered DEGRADED (ms)
+    _LATENCY_DEGRADED_MS: float = 2_000.0
+
     def __init__(
         self,
         wallet: str,
         chain_breakdown: list[dict],
         prism_health: dict,
+        chain_health: dict | None = None,
     ) -> None:
         self.wallet:           str                         = wallet
         self.chain_nodes:      dict[str, ChainStateNode]  = {}
         self.portfolio_state:  PortfolioState             = PortfolioState.STABLE
         self.transitions:      list[dict]                 = []
-        self.created_at:       str                        = datetime.utcnow().isoformat()
+        self.created_at:       str                        = datetime.now(timezone.utc).isoformat()
+        # Real-time network health data (optional; falls back to score-only logic)
+        self._chain_health:    dict                       = chain_health or {}
 
         self._initialize_nodes(chain_breakdown, prism_health)
         self._evaluate_portfolio_state()
@@ -121,8 +127,18 @@ class StateMachine:
         prism_health: dict,
     ) -> None:
         """
-        Build one ChainStateNode per supported chain, using health scores
-        from prism_health and value/percentage from chain_breakdown.
+        Build one ChainStateNode per supported chain.
+
+        ChainState mapping (real chain_health takes precedence when available):
+          • FAILED   — is_healthy == False  (hard network failure / timeout)
+          • DEGRADED — is_healthy == True but latency_ms > 2 000 ms
+          • HEALTHY  — is_healthy == True and latency_ms ≤ 2 000 ms
+          • UNKNOWN  — chain present in _SUPPORTED_CHAINS but wallet holds
+                       no assets AND no real health data is available
+
+        When chain_health is not provided the legacy score-based heuristic
+        (score < 40 → FAILED, score ≥ 70 → HEALTHY, else DEGRADED) is used
+        as a fallback.
         """
         chain_scores: dict[str, int] = prism_health.get("chain_scores", {})
 
@@ -137,8 +153,27 @@ class StateMachine:
             value: float = entry.get("value_usd", 0)
             pct:   float = entry.get("percentage", 0)
 
-            # Determine chain state from health score + value
-            if score < 40:
+            # ------------------------------------------------------------------
+            # Priority 1 — use real network health data when available
+            # ------------------------------------------------------------------
+            live: dict = self._chain_health.get(chain, {})
+            if live:
+                is_healthy: bool  = live.get("is_healthy", True)
+                latency_ms: float = live.get("latency_ms", 0.0)
+
+                if not is_healthy:
+                    # Chain is down or timed-out
+                    state = ChainState.FAILED
+                elif latency_ms > self._LATENCY_DEGRADED_MS:
+                    # Chain is reachable but too slow
+                    state = ChainState.DEGRADED
+                else:
+                    # Chain is healthy and fast
+                    state = ChainState.HEALTHY
+            # ------------------------------------------------------------------
+            # Priority 2 — fall back to PRISM health-score heuristic
+            # ------------------------------------------------------------------
+            elif score < 40:
                 state = ChainState.FAILED
             elif value == 0:
                 state = ChainState.UNKNOWN
@@ -153,7 +188,7 @@ class StateMachine:
                 value_usd=value,
                 percentage=pct,
                 health_score=score,
-                last_checked=datetime.utcnow().isoformat(),
+                last_checked=datetime.now(timezone.utc).isoformat(),
                 failure_reason=self._get_failure_reason(chain, score, pct),
             )
 

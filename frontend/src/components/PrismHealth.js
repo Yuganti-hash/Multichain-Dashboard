@@ -7,15 +7,25 @@
  *   - An overall resilience score (0–100) rendered as a circular ring.
  *   - A PRISM READY / NEEDS REBALANCING status pill.
  *   - A human-readable recommendation from the backend.
- *   - Per-chain health bars for Ethereum, Polygon, BSC, and Solana.
- *   - An informational banner explaining PRISM architecture context.
+ *   - Per-chain health bars with LIVE data: block number, latency, block
+ *     time, and a real-time healthy / degraded indicator dot.
  *
  * Props:
- *   prismHealth {Object}
+ *   prismHealth  {Object}  Backend prism_health object
  *     overall_score  {number}   0–100 portfolio resilience score
- *     chain_scores   {Object}   Per-chain scores: { ethereum, polygon, bsc, solana }
+ *     chain_scores   {Object}   Per-chain PRISM scores (real-health-adjusted)
  *     recommendation {string}   Human-readable rebalancing advice
  *     prism_ready    {boolean}  True when overall_score >= 70
+ *
+ *   chainHealth  {Object}  Backend chain_health object (may be undefined)
+ *     [chain]: {
+ *       block_number       {number}  Latest block / slot
+ *       block_time_seconds {number}  Average block time in seconds
+ *       gas_price_gwei     {number}  Gas price (0 for Solana)
+ *       is_healthy         {boolean} Live RPC health flag
+ *       latency_ms         {number}  Round-trip RPC latency
+ *       last_updated       {string}  ISO-8601 UTC timestamp
+ *     }
  */
 
 import React from 'react';
@@ -58,18 +68,42 @@ const getScoreColor = (score) => {
 // Constants — chain render order
 // ---------------------------------------------------------------------------
 
-const CHAIN_ORDER = ['ethereum', 'polygon', 'bsc', 'solana'];
+const CHAIN_ORDER = ['ethereum', 'polygon', 'bsc', 'solana', 'arbitrum'];
+
+// Chain metadata for bars that need explicit overrides (e.g. Arbitrum's brand colour).
+// Used to inject an inline `style` on the progress-bar fill when the generic
+// getScoreColor green/yellow/red palette isn't specific enough.
+const CHAIN_BAR_COLOR = {
+  arbitrum: '#28A0F0',  // Arbitrum blue — overrides the score-based bar colour
+};
+
+// Chain display names for chains not covered by getChainLabel
+const CHAIN_DISPLAY_NAME = {
+  ethereum: 'Ethereum',
+  polygon:  'Polygon',
+  bsc:      'BNB Chain',
+  solana:   'Solana',
+  arbitrum: 'Arbitrum',
+};
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Helper — format a large integer with locale commas (e.g. 471,950,335)
+// ---------------------------------------------------------------------------
+const fmtBlock = (n) =>
+  typeof n === 'number' && n > 0
+    ? n.toLocaleString('en-US')
+    : '—';
+
 /**
  * PrismHealth — PRISM State Health card component.
  *
- * @param {{ prismHealth: Object }} props
+ * @param {{ prismHealth: Object, chainHealth: Object }} props
  */
-const PrismHealth = ({ prismHealth }) => {
+const PrismHealth = ({ prismHealth, chainHealth }) => {
   // Guard: nothing to render without data
   if (!prismHealth) return null;
 
@@ -146,28 +180,115 @@ const PrismHealth = ({ prismHealth }) => {
       {CHAIN_ORDER.map((chain) => {
         const score       = prismHealth?.chain_scores?.[chain] ?? 0;
         const scoreColors = getScoreColor(score);
+        const barColor    = CHAIN_BAR_COLOR[chain];
+        const displayName = CHAIN_DISPLAY_NAME[chain] || getChainLabel(chain);
+
+        // ── Live data from chain_health (may be absent) ──────────────────
+        const live          = chainHealth?.[chain];
+        const isHealthy     = live?.is_healthy ?? null;   // null = unknown
+        const latencyMs     = live?.latency_ms  ?? null;
+        const blockNum      = live?.block_number ?? null;
+        const blockTimeSec  = live?.block_time_seconds ?? null;
+
+        // Dot colour: green = healthy, red = degraded, gray = no data
+        const dotColor =
+          isHealthy === true  ? '#22c55e' :   // green-500
+          isHealthy === false ? '#ef4444' :   // red-500
+          '#4b5563';                          // gray-600
 
         return (
-          <div key={chain} className="flex items-center gap-3 mb-2">
+          <div key={chain} className="mb-3">
 
-            {/* Chain name */}
-            <span className="text-sm text-gray-300 w-24 flex-shrink-0">
-              {getChainLabel(chain)}
-            </span>
+            {/* ── Row 1: dot + name + bar + score ────────────────────── */}
+            <div className="flex items-center gap-3">
 
-            {/* Progress bar track */}
-            <div className="flex-1 bg-gray-800 rounded-full h-2">
-              {/* Progress bar fill — width is dynamic so inline style is required */}
-              <div
-                className={`h-2 rounded-full transition-all duration-700 ease-out ${scoreColors.bar}`}
-                style={{ width: `${score}%` }}
+              {/* Live-status dot */}
+              <span
+                title={isHealthy === true ? 'Healthy' : isHealthy === false ? 'Degraded' : 'Unknown'}
+                style={{
+                  display:         'inline-block',
+                  width:           '8px',
+                  height:          '8px',
+                  borderRadius:    '50%',
+                  backgroundColor: dotColor,
+                  flexShrink:      0,
+                  boxShadow:       isHealthy === true
+                                     ? '0 0 6px #22c55e88'
+                                     : isHealthy === false
+                                       ? '0 0 6px #ef444488'
+                                       : 'none',
+                }}
               />
+
+              {/* Chain name */}
+              <span className="text-sm text-gray-300 w-20 flex-shrink-0">
+                {displayName}
+              </span>
+
+              {/* Progress bar track */}
+              <div className="flex-1 bg-gray-800 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-700 ease-out ${
+                    barColor ? '' : scoreColors.bar
+                  }`}
+                  style={{
+                    width: `${score}%`,
+                    ...(barColor ? { backgroundColor: barColor } : {}),
+                  }}
+                />
+              </div>
+
+              {/* PRISM score */}
+              <span className={`text-xs font-mono w-8 text-right flex-shrink-0 ${scoreColors.text}`}>
+                {score}
+              </span>
             </div>
 
-            {/* Score number */}
-            <span className={`text-xs font-mono w-8 text-right flex-shrink-0 ${scoreColors.text}`}>
-              {score}
-            </span>
+            {/* ── Row 2: live metrics (only when chainHealth data exists) ─ */}
+            {live && (
+              <div
+                className="flex items-center gap-4 mt-1"
+                style={{ paddingLeft: '20px' }}  /* indent past dot */
+              >
+                {/* Block number */}
+                {blockNum !== null && blockNum > 0 && (
+                  <span className="text-xs text-gray-500 font-mono">
+                    Block&nbsp;#{fmtBlock(blockNum)}
+                  </span>
+                )}
+
+                {/* Block time */}
+                {blockTimeSec !== null && blockTimeSec > 0 && (
+                  <span className="text-xs text-gray-500">
+                    {blockTimeSec < 1
+                      ? `${(blockTimeSec * 1000).toFixed(0)}ms blocks`
+                      : `${blockTimeSec.toFixed(2)}s blocks`}
+                  </span>
+                )}
+
+                {/* Latency */}
+                {latencyMs !== null && latencyMs > 0 && (
+                  <span
+                    className="text-xs font-mono"
+                    style={{
+                      color: latencyMs < 1000 ? '#22c55e'
+                           : latencyMs < 2000 ? '#f59e0b'
+                           : '#ef4444',
+                    }}
+                  >
+                    {latencyMs.toLocaleString('en-US', { maximumFractionDigits: 0 })}ms
+                  </span>
+                )}
+
+                {/* Health label */}
+                <span
+                  className="text-xs font-semibold"
+                  style={{ color: dotColor }}
+                >
+                  {isHealthy === true ? '● Live' : isHealthy === false ? '● Degraded' : ''}
+                </span>
+              </div>
+            )}
           </div>
         );
       })}

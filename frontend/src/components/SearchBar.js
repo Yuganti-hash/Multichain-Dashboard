@@ -11,7 +11,9 @@
  *   loading  {boolean}  — disables the input and shows a spinner while fetching
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 
 // ---------------------------------------------------------------------------
 // Validation helper
@@ -64,6 +66,22 @@ export default function SearchBar({ onSearch, loading }) {
   const [inputValue,      setInputValue]      = useState("");
   const [validationError, setValidationError] = useState(null);
 
+  // ── Wallet connection ──────────────────────────────────────────────────────
+  const { address: connectedAddress, isConnected } = useAccount();
+
+  /**
+   * Auto-fill the search input whenever a wallet connects or the
+   * connected address changes.  Clear the field if the wallet disconnects.
+   */
+  useEffect(() => {
+    if (isConnected && connectedAddress) {
+      setInputValue(connectedAddress);
+      setValidationError(null);
+    } else if (!isConnected) {
+      setInputValue("");
+    }
+  }, [isConnected, connectedAddress]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleSubmit = () => {
@@ -90,7 +108,34 @@ export default function SearchBar({ onSearch, loading }) {
 
   return (
     <div className="max-w-2xl mx-auto mb-8">
-      <h2 className="text-white font-bold text-lg mb-4">Search Wallet</h2>
+      {/* ── Header row: title + ConnectButton (top-right) ──────────────── */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-white font-bold text-lg">Search Wallet</h2>
+
+        {/* Wallet connect controls */}
+        <div className="flex items-center gap-3">
+          {/* Green dot + "Connected" badge — only shown when wallet is live */}
+          {isConnected && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-400">
+              <span
+                className="relative flex h-2 w-2"
+                aria-hidden="true"
+              >
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+              Connected
+            </span>
+          )}
+
+          {/* RainbowKit connect / account button */}
+          <ConnectButton
+            showBalance={false}
+            chainStatus="none"
+            accountStatus="address"
+          />
+        </div>
+      </div>
 
       {/* Input row */}
       <div className="flex gap-3">

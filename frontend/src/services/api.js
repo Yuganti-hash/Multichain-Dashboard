@@ -33,6 +33,10 @@ const api = axios.create({
   timeout: 30000, // 30 seconds — chain API calls can be slow
   headers: {
     "Content-Type": "application/json",
+    // Sent with every request when REACT_APP_API_KEY is set in .env.
+    // Must match SOVEREIGN_API_KEY in backend/.env.
+    // Falls back to "" (empty string) so unauthenticated dev mode still works.
+    "X-API-Key": process.env.REACT_APP_API_KEY || "",
   },
 });
 

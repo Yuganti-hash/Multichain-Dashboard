@@ -302,16 +302,147 @@ def calculate_prism_health_score(chain_breakdown: list[dict], tokens: list[dict]
 # PUBLIC FUNCTION 5 — calculate_credit_score
 # ===========================================================================
 def calculate_credit_score(tokens: list, transactions: list) -> dict:
-    score = 500
-    score += min(len(tokens) * 0.05, 100)
-    score += min(len(transactions) * 5, 150)
-    chain_count = len(set(t.get("chain") for t in tokens if t.get("chain")))
-    score += chain_count * 30
-    score = int(min(850, max(300, score)))
-    if score >= 750: grade = "A"
-    elif score >= 650: grade = "B"
-    elif score >= 550: grade = "C"
-    else: grade = "D"
-    return {"score": score, "grade": grade,
-            "label": "CREDEX On-Chain Credit Score",
-            "max": 850}
+    """
+    Compute the CREDEX On-Chain Credit Score for a wallet.
+
+    Score range: 300 (minimum) – 850 (maximum), matching a credit-bureau scale.
+
+    Scoring components
+    ------------------
+    Base score:            500  (every wallet starts here)
+
+    A. Token diversity:    +0–100
+       Rewards holding a variety of tokens across chains.
+       Formula: min(unique_token_count * 2, 100)
+
+    B. Chain breadth:      +0–120
+       Rewards spreading assets across multiple chains.
+       Formula: min(unique_chain_count * 30, 120)
+
+    C. Multi-chain bonus:  +30
+       Extra reward for being active on 3+ chains simultaneously.
+
+    D. Native asset bonus: +0–50
+       Rewards holding native chain tokens (ETH, SOL, BNB, MATIC, ARB)
+       as a proxy for genuine on-chain activity vs. just bridged tokens.
+       Formula: min(native_count * 10, 50)
+
+    E. Transaction history: +0–150  [additive when real tx data is provided]
+       Formula: min(len(transactions) * 5, 150)
+       NOTE: The caller in main.py currently passes transactions=[] because
+       tx history is fetched separately on /transactions. This component
+       activates automatically once real data is wired in — no further
+       changes to this function are needed.
+
+    Parameters
+    ----------
+    tokens : list[dict]
+        Flat list of all tokens across all chains from the portfolio response.
+        Each token must have at least: { "symbol": str, "chain": str }
+
+    transactions : list[dict]
+        On-chain transaction history. Pass [] if not available — the score
+        degrades gracefully using the token-derived proxy instead.
+        When real transactions are provided, each entry is counted toward
+        component E above.
+
+    Returns
+    -------
+    dict
+        {
+            "score":           int,   # 300–850
+            "grade":           str,   # "A" | "B" | "C" | "D"
+            "label":           str,   # "CREDEX On-Chain Credit Score"
+            "max":             int,   # 850
+            "tx_count":        int,   # transactions used for scoring
+            "chain_count":     int,   # unique chains detected
+            "token_count":     int,   # unique tokens detected
+        }
+    """
+    # Guard: handle None inputs gracefully
+    tokens       = tokens       if isinstance(tokens, list)       else []
+    transactions = transactions if isinstance(transactions, list) else []
+
+    # ------------------------------------------------------------------
+    # Derive unique token symbols and chain names from the tokens list.
+    # Using sets deduplicates tokens that appear on multiple chains.
+    # ------------------------------------------------------------------
+    unique_tokens: set[str] = set()
+    unique_chains: set[str] = set()
+    native_symbols = {"ETH", "SOL", "BNB", "MATIC", "ARB"}
+    native_count   = 0
+
+    for t in tokens:
+        symbol = (t.get("symbol") or "").upper().strip()
+        chain  = (t.get("chain")  or "").lower().strip()
+
+        if symbol:
+            unique_tokens.add(symbol)
+        if chain:
+            unique_chains.add(chain)
+
+        # Count native-asset holdings as an on-chain activity signal.
+        # Native tokens are a reliable proxy: wallets that actually *use*
+        # a chain always hold a native balance for gas fees.
+        if symbol in native_symbols:
+            native_count += 1
+
+    token_count = len(unique_tokens)
+    chain_count = len(unique_chains)
+    tx_count    = len(transactions)
+
+    # ------------------------------------------------------------------
+    # Base score
+    # ------------------------------------------------------------------
+    score: float = 500.0
+
+    # A — Token diversity (max +100)
+    # Each unique token held adds 2 points.
+    # A wallet with 50+ distinct tokens earns the full 100.
+    score += min(token_count * 2, 100)
+
+    # B — Chain breadth (max +120)
+    # Being active on more chains is a strong creditworthiness signal.
+    score += min(chain_count * 30, 120)
+
+    # C — Multi-chain bonus (+30)
+    # Extra reward for genuine cross-chain presence (3+ chains).
+    if chain_count >= 3:
+        score += 30
+
+    # D — Native asset bonus (max +50)
+    # Each native token held (ETH, SOL, BNB, MATIC, ARB) adds 10 points.
+    # Capped at 50 — holding 5 different natives is the ceiling.
+    score += min(native_count * 10, 50)
+
+    # E — Transaction history (max +150)
+    # Activates when real tx data is passed by the caller.
+    # Each transaction adds 5 points; 30+ transactions earns the full 150.
+    score += min(tx_count * 5, 150)
+
+    # ------------------------------------------------------------------
+    # Clamp to valid range and convert to int
+    # ------------------------------------------------------------------
+    final_score: int = int(min(850, max(300, score)))
+
+    # ------------------------------------------------------------------
+    # Letter grade — mirrors US credit bureau thresholds
+    # ------------------------------------------------------------------
+    if final_score >= 750:
+        grade = "A"   # Excellent
+    elif final_score >= 650:
+        grade = "B"   # Good
+    elif final_score >= 550:
+        grade = "C"   # Fair
+    else:
+        grade = "D"   # Poor
+
+    return {
+        "score":       final_score,
+        "grade":       grade,
+        "label":       "CREDEX On-Chain Credit Score",
+        "max":         850,
+        "tx_count":    tx_count,
+        "chain_count": chain_count,
+        "token_count": token_count,
+    }

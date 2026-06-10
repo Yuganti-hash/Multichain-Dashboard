@@ -46,7 +46,12 @@ def check_compliance(wallet: str) -> dict:
             "credential":        str   # only present when CLEAR
         }
     """
-    w = wallet.lower().strip()
+    # EVM addresses start with "0x" and are case-insensitive — always normalise to lowercase.
+    # Solana addresses are base58-encoded and ARE case-sensitive — do NOT lowercase them.
+    if wallet.startswith("0x"):
+        w = wallet.lower().strip()
+    else:
+        w = wallet.strip()
 
     if w in FLAGGED_WALLETS:
         return {

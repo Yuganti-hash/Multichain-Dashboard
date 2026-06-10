@@ -7,7 +7,8 @@ Fetches Solana portfolio data using two separate APIs:
      — used for native SOL balance via getBalance (no API key required)
 
   2. Helius API (api.helius.xyz/v0)
-     — used for SPL token balances via the /addresses/{wallet}/balances endpoint
+     — used for SPL token balances via /addresses/{wallet}/balances
+     — used for Solana NFTs via /addresses/{wallet}/nfts
 
 Unlike the EVM chain modules (ethereum, polygon, bsc) which all use Moralis,
 Solana has its own distinct account model and requires a different data source.
@@ -139,6 +140,70 @@ async def _fetch_token_balances(client: httpx.AsyncClient, wallet: str) -> list[
         return []
 
 
+async def _fetch_nfts(client: httpx.AsyncClient, wallet: str) -> list[dict]:
+    """
+    Fetch Solana NFTs owned by *wallet* using the Helius v0 NFT endpoint.
+
+    Endpoint: GET https://api.helius.xyz/v0/addresses/{wallet}/nfts
+              ?api-key={HELIUS_API_KEY}&pageSize=100
+
+    Response structure:
+        [
+            {
+                "mint":        str,           # NFT mint address
+                "name":        str,           # Collection / token name
+                "symbol":      str,           # Short symbol
+                "image":       str | null,    # Image URL (if available)
+                "description": str | null,
+                "collection":  { "name": str, ... } | null,
+            },
+            ...
+        ]
+
+    Returns a normalised list ready to merge into the portfolio response.
+    Always returns [] on any error so callers never crash.
+    """
+    try:
+        url    = f"{HELIUS_BASE_URL}/addresses/{wallet}/nfts"
+        params = {"api-key": HELIUS_API_KEY, "pageSize": 100}
+        resp   = await client.get(url, params=params)
+        resp.raise_for_status()
+
+        raw: list[dict] = resp.json()   # Helius v0 returns a bare JSON array
+        if not isinstance(raw, list):
+            # Defensive: if Helius wraps in an object someday, bail safely
+            print(f"[solana] Unexpected NFT response type: {type(raw)}")
+            return []
+
+        nfts: list[dict] = []
+        for item in raw:
+            try:
+                mint       = item.get("mint", "")
+                name       = item.get("name") or f"Solana NFT ({mint[:8]}...)"
+                symbol     = item.get("symbol") or mint[:6].upper() or "NFT"
+                image      = item.get("image") or item.get("imageUrl") or ""
+                collection = (item.get("collection") or {}).get("name", "")
+
+                nfts.append(
+                    {
+                        "token_id":    mint,
+                        "name":        name,
+                        "symbol":      symbol,
+                        "image":       image,
+                        "collection":  collection,
+                        "chain":       "solana",
+                    }
+                )
+            except Exception as item_exc:
+                print(f"[solana] Skipping malformed NFT entry: {item_exc}")
+
+        return nfts
+
+    except Exception as exc:
+        print(f"[solana] Failed to fetch NFTs: {exc}")
+        return []
+
+
 # ===========================================================================
 # PUBLIC FUNCTION — get_portfolio
 # ===========================================================================
@@ -176,11 +241,15 @@ async def get_portfolio(wallet_address: str) -> dict:
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         # ------------------------------------------------------------------
-        # Fire both requests concurrently — SOL RPC + Helius token balances
+        # Fire all three requests concurrently:
+        #   1. SOL native balance  (public Solana RPC — no key needed)
+        #   2. SPL token balances  (Helius /balances)
+        #   3. Solana NFTs         (Helius v0 /nfts)
         # ------------------------------------------------------------------
-        sol_balance, spl_tokens = await asyncio.gather(
+        sol_balance, spl_tokens, nfts = await asyncio.gather(
             _fetch_sol_balance(client, wallet_address),
             _fetch_token_balances(client, wallet_address),
+            _fetch_nfts(client, wallet_address),
         )
 
     # ------------------------------------------------------------------
@@ -199,6 +268,6 @@ async def get_portfolio(wallet_address: str) -> dict:
     return {
         "chain":          "solana",
         "tokens":         all_tokens,
-        "nfts":           [],       # NFT support not yet implemented for Solana
+        "nfts":           nfts,          # Live NFT data from Helius v0 /nfts
         "native_balance": sol_balance,
     }
