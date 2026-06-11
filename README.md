@@ -139,7 +139,21 @@ curl http://localhost:8000/health
 # Expected: {"status":"ok","version":"1.0.0"}
 ```
 
-### 4. Test with a real wallet
+### 4. React Frontend Setup (Optional)
+
+If you wish to run the full React dashboard with WalletConnect, RainbowKit, and Recharts:
+
+```bash
+cd frontend
+
+# Install Node dependencies (if not already installed)
+npm install
+
+# Start the frontend React app (runs on port 3000, proxies requests to backend on port 8000)
+npm start
+```
+
+### 5. Test with a real wallet
 
 Paste Vitalik's public address into the search bar:
 
