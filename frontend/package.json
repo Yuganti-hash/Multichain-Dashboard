@@ -51,5 +51,6 @@
     "rules": {
       "react-hooks/exhaustive-deps": "warn"
     }
-  }
+  },
+  "proxy": "http://localhost:8000"
 }

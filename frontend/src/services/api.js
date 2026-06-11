@@ -29,7 +29,10 @@ import axios from "axios";
  * baseURL falls back to localhost:8000 if REACT_APP_API_URL is not set in .env
  */
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000",
+  // In CRA dev mode (localhost:3000) the built-in proxy forwards all unknown
+  // requests to localhost:8000, so we use an empty baseURL (same-origin) to
+  // avoid CORS entirely.  In production set REACT_APP_API_URL to the real API.
+  baseURL: process.env.REACT_APP_API_URL || "",
   timeout: 30000, // 30 seconds — chain API calls can be slow
   headers: {
     "Content-Type": "application/json",
@@ -46,7 +49,8 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    console.log(`[API] Request: ${config.method.toUpperCase()} ${config.url}`);
+    const method = (config.method || 'GET').toUpperCase();
+    console.log(`[API] Request: ${method} ${config.url}`);
     return config;
   },
   (error) => Promise.reject(error)

@@ -5454,7 +5454,7 @@
     })();
 
     /* ===== BACKEND CONFIG ===== */
-    var API_BASE = 'http://localhost:8000';
+    var API_BASE = 'http://localhost:8000';  // FastAPI backend
     var API_KEY  = '';
     var CHAIN_COLORS = { ethereum: '#627EEA', polygon: '#8247E5', bsc: '#F3BA2F', solana: '#9945FF', arbitrum: '#28A0F0' };
     var CHAIN_LABELS = { ethereum: 'Ethereum', polygon: 'Polygon', bsc: 'BNB Chain', solana: 'Solana', arbitrum: 'Arbitrum' };
@@ -7536,7 +7536,7 @@
 
     var _pendingWallet = null; // wallet to launch after login
     var _SESSION_KEY   = 'mc_session';  // sessionStorage key — stores { token, email, name }
-    var _API_BASE      = 'http://localhost:8000'; // FastAPI backend
+    var _API_BASE = API_BASE;  // same FastAPI backend as the rest of the app
 
     /* ---- Session helpers ---- */
 

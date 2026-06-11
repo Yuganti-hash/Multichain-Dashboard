@@ -76,4 +76,33 @@ module.exports = {
       return webpackConfig;
     },
   },
+
+  // -------------------------------------------------------------------------
+  // Dev-server proxy — forwards all FastAPI routes to localhost:8000.
+  // This eliminates CORS in development: the browser sees one origin (3000)
+  // and the dev server silently forwards matching paths to the backend.
+  // -------------------------------------------------------------------------
+  devServer: (devServerConfig) => {
+    devServerConfig.proxy = [
+      {
+        context: [
+          '/auth',
+          '/portfolio',
+          '/transactions',
+          '/health',
+          '/history',
+          '/gas',
+          '/chain-health',
+          '/verify-wallet',
+          '/ai',
+          '/bridge',
+          '/ws',
+        ],
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        ws: true,          // proxy WebSocket connections too
+      },
+    ];
+    return devServerConfig;
+  },
 };

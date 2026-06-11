@@ -71,6 +71,14 @@ JWT_SECRET:    str = os.getenv("JWT_SECRET", "change-me-in-production-sovereign-
 JWT_ALGORITHM: str = "HS256"
 JWT_EXPIRE_HOURS: int = 24
 
+# ---------------------------------------------------------------------------
+# In-memory fallbacks when DB is down
+# ---------------------------------------------------------------------------
+_DB_AVAILABLE = True
+_IN_MEMORY_USERS: dict[str, dict] = {}  # email -> {id, name, email, password_hash}
+_IN_MEMORY_WALLETS: list[str] = []
+_IN_MEMORY_PORTFOLIO_CACHE: dict[str, dict] = {}  # wallet -> {"data": response_payload, "updated_at": datetime}
+
 # (load_dotenv() already called above, before chain imports)
 
 # ---------------------------------------------------------------------------
@@ -117,7 +125,9 @@ allowed_origins = (
     if _env_origins
     else [
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:5500",
+        "http://127.0.0.1:3000",
         "http://127.0.0.1:5500",
     ]
 )
@@ -126,7 +136,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],   # allow all HTTP methods (GET, POST, PUT, DELETE, OPTIONS…)
     allow_headers=["*"],
 )
 
@@ -169,10 +179,13 @@ async def on_startup():
        In production, run `alembic upgrade head` before starting the server.
     2. Prints a startup banner for operator visibility.
     """
+    global _DB_AVAILABLE
     try:
         await init_db()
+        _DB_AVAILABLE = True
         print("Database initialised successfully.")
     except Exception as e:
+        _DB_AVAILABLE = False
         print(f"[startup] DB unavailable: {e} — running without database.")
         print("[startup] To enable persistence, set DATABASE_URL in .env and start Postgres.")
     print("MultiChain Dashboard API running on port 8000")
@@ -235,23 +248,30 @@ async def get_portfolio(request: Request, wallet_address: str):
         # (updated within the last 5 minutes).  Skips all external calls.
         # ------------------------------------------------------------------
         _CACHE_TTL_SECONDS = 300  # 5 minutes
-        try:
-            async with AsyncSessionLocal() as _cs:
-                _cached = await _cs.execute(
-                    select(PortfolioCache).where(
-                        PortfolioCache.wallet_address == wallet_address
+        if not _DB_AVAILABLE:
+            if wallet_address in _IN_MEMORY_PORTFOLIO_CACHE:
+                _entry = _IN_MEMORY_PORTFOLIO_CACHE[wallet_address]
+                _age = (datetime.now(timezone.utc) - _entry["updated_at"]).total_seconds()
+                if _age < _CACHE_TTL_SECONDS:
+                    return _entry["data"]
+        else:
+            try:
+                async with AsyncSessionLocal() as _cs:
+                    _cached = await _cs.execute(
+                        select(PortfolioCache).where(
+                            PortfolioCache.wallet_address == wallet_address
+                        )
                     )
-                )
-                _row = _cached.scalar_one_or_none()
-                if _row is not None:
-                    _age = (
-                        datetime.now(timezone.utc) - _row.updated_at
-                    ).total_seconds()
-                    if _age < _CACHE_TTL_SECONDS:
-                        return json.loads(_row.data)
-        except Exception as _ce:
-            # Cache read failure must never block a live fetch
-            print(f"[portfolio] cache-read skipped: {_ce}")
+                    _row = _cached.scalar_one_or_none()
+                    if _row is not None:
+                        _age = (
+                            datetime.now(timezone.utc) - _row.updated_at
+                        ).total_seconds()
+                        if _age < _CACHE_TTL_SECONDS:
+                            return json.loads(_row.data)
+            except Exception as _ce:
+                # Cache read failure must never block a live fetch
+                print(f"[portfolio] cache-read skipped: {_ce}")
 
         # ------------------------------------------------------------------
         # Step 1 — Fetch all four chains + Ethereum tx history in parallel.
@@ -442,61 +462,79 @@ async def get_portfolio(request: Request, wallet_address: str):
             "state_machine":     state_machine,
             "router":            router_data,
             "prism_state":       prism_state_obj,
-            "chain_health":      chain_health,    # ← real-time per-chain health
+            "chain_health":      chain_health,
         }
 
         # ------------------------------------------------------------------
         # Persist to DB — failures are fully isolated from the response.
         # ------------------------------------------------------------------
-        try:
-            async with AsyncSessionLocal() as _db:
-                # 1. Upsert wallet address
-                await _db.execute(
-                    pg_insert(Wallet)
-                    .values(address=wallet_address, chain="multichain")
-                    .on_conflict_do_nothing(constraint="uq_wallet_address_chain")
-                )
-
-                # 2. Upsert portfolio cache (one row per wallet, updated_at auto-bumped)
-                _now = datetime.now(timezone.utc)
-                await _db.execute(
-                    pg_insert(PortfolioCache)
-                    .values(
-                        wallet_address=wallet_address,
-                        data=json.dumps(response_payload),
-                        updated_at=_now,
-                    )
-                    .on_conflict_do_update(
-                        constraint="uq_portfolio_wallet",
-                        set_={
-                            "data":       json.dumps(response_payload),
-                            "updated_at": _now,
-                        },
-                    )
-                )
-
-                # 3. Upsert health score for each chain
-                _chain_scores: dict = prism_health.get("chain_scores", {})
-                for _chain_name, _score in _chain_scores.items():
+        _now = datetime.now(timezone.utc)
+        if not _DB_AVAILABLE:
+            _IN_MEMORY_PORTFOLIO_CACHE[wallet_address] = {
+                "data": response_payload,
+                "updated_at": _now,
+            }
+            if wallet_address not in _IN_MEMORY_WALLETS:
+                _IN_MEMORY_WALLETS.insert(0, wallet_address)
+                if len(_IN_MEMORY_WALLETS) > 10:
+                    _IN_MEMORY_WALLETS.pop()
+        else:
+            try:
+                async with AsyncSessionLocal() as _db:
+                    # 1. Upsert wallet address
                     await _db.execute(
-                        pg_insert(HealthScore)
+                        pg_insert(Wallet)
+                        .values(address=wallet_address, chain="multichain")
+                        .on_conflict_do_nothing(constraint="uq_wallet_address_chain")
+                    )
+
+                    # 2. Upsert portfolio cache (one row per wallet, updated_at auto-bumped)
+                    await _db.execute(
+                        pg_insert(PortfolioCache)
                         .values(
-                            chain=_chain_name,
-                            score=float(_score),
+                            wallet_address=wallet_address,
+                            data=json.dumps(response_payload),
                             updated_at=_now,
                         )
                         .on_conflict_do_update(
-                            constraint="uq_health_chain",
+                            constraint="uq_portfolio_wallet",
                             set_={
-                                "score":      float(_score),
+                                "data":       json.dumps(response_payload),
                                 "updated_at": _now,
                             },
                         )
                     )
 
-                await _db.commit()
-        except Exception as _dbe:
-            print(f"[portfolio] DB write skipped (non-fatal): {_dbe}")
+                    # 3. Upsert health score for each chain
+                    _chain_scores: dict = prism_health.get("chain_scores", {})
+                    for _chain_name, _score in _chain_scores.items():
+                        await _db.execute(
+                            pg_insert(HealthScore)
+                            .values(
+                                chain=_chain_name,
+                                score=float(_score),
+                                updated_at=_now,
+                            )
+                            .on_conflict_do_update(
+                                constraint="uq_health_chain",
+                                set_={
+                                    "score":      float(_score),
+                                    "updated_at": _now,
+                                },
+                            )
+                        )
+
+                    await _db.commit()
+            except Exception as _dbe:
+                print(f"[portfolio] DB write skipped (non-fatal): {_dbe} — writing to in-memory fallback cache.")
+                _IN_MEMORY_PORTFOLIO_CACHE[wallet_address] = {
+                    "data": response_payload,
+                    "updated_at": _now,
+                }
+                if wallet_address not in _IN_MEMORY_WALLETS:
+                    _IN_MEMORY_WALLETS.insert(0, wallet_address)
+                    if len(_IN_MEMORY_WALLETS) > 10:
+                        _IN_MEMORY_WALLETS.pop()
 
         return response_payload
 
@@ -534,6 +572,14 @@ async def get_portfolio_cache(request: Request, wallet_address: str):
     200  { fresh: false, error: str }                  — DB unavailable (non-fatal)
     """
     _CACHE_TTL_SECONDS = 300  # 5 minutes
+    if not _DB_AVAILABLE:
+        if wallet_address in _IN_MEMORY_PORTFOLIO_CACHE:
+            _entry = _IN_MEMORY_PORTFOLIO_CACHE[wallet_address]
+            _age = (datetime.now(timezone.utc) - _entry["updated_at"]).total_seconds()
+            if _age < _CACHE_TTL_SECONDS:
+                return {"fresh": True, "data": _entry["data"]}
+        return {"fresh": False}
+
     try:
         async with AsyncSessionLocal() as _cs:
             _cached = await _cs.execute(
@@ -552,6 +598,12 @@ async def get_portfolio_cache(request: Request, wallet_address: str):
             return {"fresh": True, "data": json.loads(_row.data)}
     except Exception as _ce:
         # DB failure is non-fatal: frontend falls through to live fetch
+        # check in-memory cache as fallback
+        if wallet_address in _IN_MEMORY_PORTFOLIO_CACHE:
+            _entry = _IN_MEMORY_PORTFOLIO_CACHE[wallet_address]
+            _age = (datetime.now(timezone.utc) - _entry["updated_at"]).total_seconds()
+            if _age < _CACHE_TTL_SECONDS:
+                return {"fresh": True, "data": _entry["data"]}
         return {"fresh": False, "error": str(_ce)}
 
 
@@ -600,6 +652,35 @@ async def health_check(request: Request):
     Returns 200 OK with the API version — useful for load balancers and monitoring.
     """
     return {"status": "ok", "version": "1.0.0"}
+
+
+# ===========================================================================
+# ROUTE 3a — GET /history  (public — recent wallet searches for landing page)
+# ===========================================================================
+@app.get("/history", summary="Recent wallet searches")
+@limiter.limit("30/minute")
+async def get_search_history(request: Request):
+    """
+    Return the most recently queried wallet addresses (up to 10).
+    Used by the landing page to populate the "Recent Searches" quick-fill chips.
+    No authentication required — wallet addresses are public on-chain data.
+    Falls back gracefully when the database is unavailable.
+    """
+    if not _DB_AVAILABLE:
+        return {"wallets": _IN_MEMORY_WALLETS}
+    try:
+        async with AsyncSessionLocal() as _db:
+            result = await _db.execute(
+                select(Wallet.address)
+                .order_by(Wallet.id.desc())
+                .limit(10)
+            )
+            wallets = [row[0] for row in result.fetchall()]
+        return {"wallets": wallets}
+    except Exception as exc:
+        # DB unavailable — return empty list or in-memory list
+        print(f"[history] DB unavailable: {exc}")
+        return {"wallets": _IN_MEMORY_WALLETS}
 
 
 # ===========================================================================
@@ -812,6 +893,7 @@ async def auth_register(
     400  email already registered
     422  validation failure
     """
+    global _DB_AVAILABLE
     # ── Input validation ────────────────────────────────────────────────────
     name     = body.name.strip()
     email    = body.email.strip().lower()
@@ -825,20 +907,50 @@ async def auth_register(
         raise HTTPException(status_code=422, detail="Password must be at least 8 characters.")
 
     # ── Check for duplicate email ────────────────────────────────────────────
-    existing = await db.execute(select(User).where(User.email == email))
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="An account with this email already exists.")
+    if not _DB_AVAILABLE:
+        if email in _IN_MEMORY_USERS:
+            raise HTTPException(status_code=400, detail="An account with this email already exists.")
+        pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+        user_id = len(_IN_MEMORY_USERS) + 1
+        _IN_MEMORY_USERS[email] = {
+            "id": user_id,
+            "name": name,
+            "email": email,
+            "password_hash": pw_hash
+        }
+        token = _create_jwt(user_id, email, name)
+        return {"token": token, "name": name, "email": email}
 
-    # ── Hash password & persist ──────────────────────────────────────────────
-    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
-    user = User(name=name, email=email, password_hash=pw_hash)
-    db.add(user)
-    await db.flush()   # populate user.id without full commit yet
-    await db.commit()
-    await db.refresh(user)
+    try:
+        existing = await db.execute(select(User).where(User.email == email))
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="An account with this email already exists.")
 
-    token = _create_jwt(user.id, user.email, user.name)
-    return {"token": token, "name": user.name, "email": user.email}
+        # ── Hash password & persist ──────────────────────────────────────────────
+        pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+        user = User(name=name, email=email, password_hash=pw_hash)
+        db.add(user)
+        await db.flush()   # populate user.id without full commit yet
+        await db.commit()
+        await db.refresh(user)
+
+        token = _create_jwt(user.id, user.email, user.name)
+        return {"token": token, "name": user.name, "email": user.email}
+    except Exception as exc:
+        print(f"[register] DB error: {exc} — falling back to in-memory registration.")
+        _DB_AVAILABLE = False
+        if email in _IN_MEMORY_USERS:
+            raise HTTPException(status_code=400, detail="An account with this email already exists.")
+        pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+        user_id = len(_IN_MEMORY_USERS) + 1
+        _IN_MEMORY_USERS[email] = {
+            "id": user_id,
+            "name": name,
+            "email": email,
+            "password_hash": pw_hash
+        }
+        token = _create_jwt(user_id, email, name)
+        return {"token": token, "name": name, "email": email}
 
 
 # ===========================================================================
@@ -863,22 +975,45 @@ async def auth_login(
     200  { token: str, name: str, email: str }
     401  invalid credentials
     """
+    global _DB_AVAILABLE
     email    = body.email.strip().lower()
     password = body.password
 
-    result = await db.execute(select(User).where(User.email == email))
-    user   = result.scalar_one_or_none()
+    if not _DB_AVAILABLE:
+        user = _IN_MEMORY_USERS.get(email)
+        dummy_hash = b"$2b$12$invalidhashpaddingtomatchlength000000000000000000000"
+        stored = user["password_hash"].encode() if user else dummy_hash
+        password_ok = bcrypt.checkpw(password.encode(), stored)
+        if not user or not password_ok:
+            raise HTTPException(status_code=401, detail="Incorrect email or password.")
+        token = _create_jwt(user["id"], user["email"], user["name"])
+        return {"token": token, "name": user["name"], "email": user["email"]}
 
-    # Use a constant-time check regardless of whether user exists
-    dummy_hash = b"$2b$12$invalidhashpaddingtomatchlength000000000000000000000"
-    stored = user.password_hash.encode() if user else dummy_hash
-    password_ok = bcrypt.checkpw(password.encode(), stored)
+    try:
+        result = await db.execute(select(User).where(User.email == email))
+        user   = result.scalar_one_or_none()
 
-    if not user or not password_ok:
-        raise HTTPException(status_code=401, detail="Incorrect email or password.")
+        # Use a constant-time check regardless of whether user exists
+        dummy_hash = b"$2b$12$invalidhashpaddingtomatchlength000000000000000000000"
+        stored = user.password_hash.encode() if user else dummy_hash
+        password_ok = bcrypt.checkpw(password.encode(), stored)
 
-    token = _create_jwt(user.id, user.email, user.name)
-    return {"token": token, "name": user.name, "email": user.email}
+        if not user or not password_ok:
+            raise HTTPException(status_code=401, detail="Incorrect email or password.")
+
+        token = _create_jwt(user.id, user.email, user.name)
+        return {"token": token, "name": user.name, "email": user.email}
+    except Exception as exc:
+        print(f"[login] DB error: {exc} — falling back to in-memory login verification.")
+        _DB_AVAILABLE = False
+        user = _IN_MEMORY_USERS.get(email)
+        dummy_hash = b"$2b$12$invalidhashpaddingtomatchlength000000000000000000000"
+        stored = user["password_hash"].encode() if user else dummy_hash
+        password_ok = bcrypt.checkpw(password.encode(), stored)
+        if not user or not password_ok:
+            raise HTTPException(status_code=401, detail="Incorrect email or password.")
+        token = _create_jwt(user["id"], user["email"], user["name"])
+        return {"token": token, "name": user["name"], "email": user["email"]}
 
 
 # ===========================================================================
