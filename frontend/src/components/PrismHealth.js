@@ -29,7 +29,7 @@
  */
 
 import React from 'react';
-import { getChainLabel, getChainColor } from '../services/api';
+import { getChainLabel } from '../services/api';
 
 // ---------------------------------------------------------------------------
 // Helper — map a 0-100 score to Tailwind colour classes
@@ -108,7 +108,6 @@ const PrismHealth = ({ prismHealth, chainHealth }) => {
   if (!prismHealth) return null;
 
   const overallScore   = prismHealth?.overall_score   ?? 0;
-  const chainScores    = prismHealth?.chain_scores    ?? {};
   const recommendation = prismHealth?.recommendation  ?? '';
   const prismReady     = prismHealth?.prism_ready     ?? false;
 

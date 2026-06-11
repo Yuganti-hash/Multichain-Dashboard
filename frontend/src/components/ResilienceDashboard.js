@@ -68,27 +68,17 @@ function formatUSD(val) {
 // ---------------------------------------------------------------------------
 
 export default function ResilienceDashboard({ stateMachine, prismHealth }) {
-  // Guard clause if data is loading or missing
-  if (!stateMachine || !prismHealth) {
-    return (
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-400">
-        <p className="font-semibold text-lg">Waiting for portfolio data...</p>
-        <p className="text-sm text-gray-500 mt-2">Search for a wallet to load PRISM Resilience metrics.</p>
-      </div>
-    );
-  }
-
   // --- Simulation State ---
   const [isSimulated, setIsSimulated] = useState(false);
   const [simStep, setSimStep] = useState(0); // 0: Idle, 1: Scanning, 2: Liquidity Check, 3: Relocating, 4: Recalculating, 5: Finished
   const [simLogs, setSimLogs] = useState([]);
-  const [simScore, setSimScore] = useState(prismHealth.overall_score);
+  const [simScore, setSimScore] = useState(prismHealth?.overall_score || 0);
   const [simState, setSimState] = useState({
-    portfolio_state: stateMachine.portfolio_state,
-    portfolio_state_label: stateMachine.portfolio_state_label,
-    portfolio_state_color: stateMachine.portfolio_state_color,
-    chain_nodes: JSON.parse(JSON.stringify(stateMachine.chain_nodes || {})),
-    migration_plan: JSON.parse(JSON.stringify(stateMachine.migration_plan || {})),
+    portfolio_state: stateMachine?.portfolio_state,
+    portfolio_state_label: stateMachine?.portfolio_state_label,
+    portfolio_state_color: stateMachine?.portfolio_state_color,
+    chain_nodes: JSON.parse(JSON.stringify(stateMachine?.chain_nodes || {})),
+    migration_plan: JSON.parse(JSON.stringify(stateMachine?.migration_plan || {})),
     prism_health: JSON.parse(JSON.stringify(prismHealth || {})),
   });
 
@@ -103,7 +93,7 @@ export default function ResilienceDashboard({ stateMachine, prismHealth }) {
 
   // Synchronize state if props change when simulation is not active
   useEffect(() => {
-    if (!isSimulated) {
+    if (!isSimulated && stateMachine && prismHealth) {
       setSimScore(prismHealth.overall_score);
       setSimState({
         portfolio_state: stateMachine.portfolio_state,
@@ -116,9 +106,18 @@ export default function ResilienceDashboard({ stateMachine, prismHealth }) {
     }
   }, [stateMachine, prismHealth, isSimulated]);
 
+  // Guard clause if data is loading or missing
+  if (!stateMachine || !prismHealth) {
+    return (
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-400">
+        <p className="font-semibold text-lg">Waiting for portfolio data...</p>
+        <p className="text-sm text-gray-500 mt-2">Search for a wallet to load PRISM Resilience metrics.</p>
+      </div>
+    );
+  }
+
   // Extract variables based on current simulated state
   const currentScore = isSimulated ? simScore : prismHealth.overall_score;
-  const currentPrismHealth = isSimulated ? simState.prism_health : prismHealth;
   const currentStateMachine = isSimulated ? simState : stateMachine;
 
   const {
@@ -129,10 +128,7 @@ export default function ResilienceDashboard({ stateMachine, prismHealth }) {
     migration_plan = {},
   } = currentStateMachine;
 
-  const activeNodes = Object.values(chain_nodes).filter((n) => n.value_usd > 0);
   const failedNodes = Object.values(chain_nodes).filter((n) => n.state === 'FAILED' || n.health_score < 40);
-  const degradedNodes = Object.values(chain_nodes).filter((n) => n.state === 'DEGRADED' && n.health_score >= 40 && n.health_score < 70);
-  const healthyNodes = Object.values(chain_nodes).filter((n) => n.state === 'HEALTHY' || (n.health_score >= 70 && n.state !== 'FAILED'));
 
   // Determine readiness details
   const isPrismReady = currentScore >= 70;
@@ -302,7 +298,6 @@ export default function ResilienceDashboard({ stateMachine, prismHealth }) {
   };
 
   const scoreStyle = getScoreStyle(currentScore);
-  const strokeDashoffset = 282.6 - (282.6 * currentScore) / 100; // SVG circle circumference is ~282.6
 
   return (
     <div className="space-y-6 tab-content">
@@ -615,7 +610,6 @@ export default function ResilienceDashboard({ stateMachine, prismHealth }) {
                 const node = chain_nodes[cKey];
                 const isFailed = node.health_score < 40;
                 const isDegraded = node.health_score >= 40 && node.health_score < 70;
-                const isNodeHealthy = node.health_score >= 70;
 
                 return (
                   <div

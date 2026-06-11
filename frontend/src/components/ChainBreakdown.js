@@ -13,7 +13,7 @@
  */
 
 import React from "react";
-import { getChainColor, getChainLabel, formatUSD } from "../services/api";
+import { getChainLabel, formatUSD } from "../services/api";
 
 // ---------------------------------------------------------------------------
 // Chain visual config — icon glyph and Tailwind gradient per chain

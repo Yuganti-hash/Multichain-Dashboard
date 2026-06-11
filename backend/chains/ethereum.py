@@ -244,7 +244,7 @@ async def get_portfolio(wallet_address: str) -> dict:
 # ===========================================================================
 # PUBLIC FUNCTION 2 — get_transactions
 # ===========================================================================
-async def get_transactions(wallet_address: str) -> list[dict]:
+async def get_transactions(wallet_address: str, limit: int = 10) -> list[dict]:
     """
     Return the last 10 Ethereum transactions for *wallet_address*.
 
@@ -271,7 +271,7 @@ async def get_transactions(wallet_address: str) -> list[dict]:
 
     try:
         url = f"{BASE_URL}/{wallet_address}"
-        params = {"chain": "eth", "limit": 10}
+        params = {"chain": "eth", "limit": limit}
 
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get(url, params=params, headers=HEADERS)

@@ -186,3 +186,49 @@ class HealthScore(Base):
             f"score={self.score} "
             f"updated_at={self.updated_at}>"
         )
+
+
+# ===========================================================================
+# Table 4 — users
+# Stores registered dashboard user accounts.
+# Passwords are stored as bcrypt hashes — never plain-text.
+# ===========================================================================
+class User(Base):
+    """
+    Represents a registered MultiChain Dashboard user.
+
+    Columns
+    -------
+    id            : Auto-incrementing primary key.
+    name          : Display name (max 80 chars).
+    email         : Unique login identifier (max 255 chars, lowercased).
+    password_hash : bcrypt hash of the user's password (60 chars).
+    created_at    : UTC timestamp of account creation.
+
+    Constraints
+    -----------
+    uq_user_email : Email must be unique across all users.
+    ix_user_email : Index for fast login lookups by email.
+    """
+
+    __tablename__ = "users"
+
+    id:            Mapped[int]      = mapped_column(Integer,     primary_key=True, autoincrement=True)
+    name:          Mapped[str]      = mapped_column(String(80),  nullable=False)
+    email:         Mapped[str]      = mapped_column(String(255), nullable=False, unique=True)
+    password_hash: Mapped[str]      = mapped_column(String(255), nullable=False)
+    created_at:    Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utcnow,
+        server_default=func.now(),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("email", name="uq_user_email"),
+        Index("ix_user_email", "email"),
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<User id={self.id} email={self.email!r}>"
+

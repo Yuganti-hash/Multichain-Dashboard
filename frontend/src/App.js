@@ -34,6 +34,7 @@ import { TokenBarChart }  from "./components/BarChart";
 import PrismHealth        from "./components/PrismHealth";
 import StateMachine       from "./components/StateMachine";
 import AiAdvisor          from "./components/AiAdvisor";
+import BridgePanel        from "./components/BridgePanel";
 import ExecutionRouter    from "./components/ExecutionRouter";
 import ResilienceDashboard from "./components/ResilienceDashboard";
 import ChainHealthWidget   from "./components/ChainHealthWidget";
@@ -48,10 +49,11 @@ import { useChainHealth } from "./hooks/useChainHealth";
 // Chain metadata used in the welcome state
 // ---------------------------------------------------------------------------
 const CHAINS = [
-  { id: "ethereum", label: "Ethereum", color: "#627EEA" },
-  { id: "polygon",  label: "Polygon",  color: "#8247E5" },
-  { id: "bsc",      label: "BNB Chain", color: "#F3BA2F" },
-  { id: "solana",   label: "Solana",   color: "#9945FF" },
+  { id: "ethereum",  label: "Ethereum",  color: "#627EEA" },
+  { id: "polygon",   label: "Polygon",   color: "#8247E5" },
+  { id: "bsc",       label: "BNB Chain", color: "#F3BA2F" },
+  { id: "solana",    label: "Solana",    color: "#9945FF" },
+  { id: "arbitrum",  name: "Arbitrum",   color: "#28A0F0", icon: "A" },
 ];
 
 // Tab definitions
@@ -62,6 +64,7 @@ const TABS = [
   { id: "transactions",  label: "Transactions" },
   { id: "resilience",    label: "🛡️ Resilience" },
   { id: "ai",            label: "🧠 AI Advisor" },
+  { id: "bridge",        label: "🌉 Bridge",  isNew: true },
 ];
 
 // ===========================================================================
@@ -213,11 +216,9 @@ function NftImage({ nft, onLoadError }) {
  */
 export default function App() {
   // ── State ─────────────────────────────────────────────────────────────────
-  const [walletAddress, setWalletAddress] = useState("");
   const [portfolio,     setPortfolio]     = useState(null);
   const [transactions,  setTransactions]  = useState(null);
   const [loading,       setLoading]       = useState(false);
-  const [txLoading,     setTxLoading]     = useState(false); // reserved for future use
   const [error,         setError]         = useState(null);
   const [apiStatus,     setApiStatus]     = useState("checking"); // "ok" | "error" | "checking"
   const [activeTab,     setActiveTab]     = useState("overview");
@@ -271,7 +272,6 @@ export default function App() {
     setError(null);
     setPortfolio(null);
     setTransactions(null);
-    setWalletAddress(address);
     setActiveTab("overview");
     setFailedNftKeys(new Set());
 
@@ -360,7 +360,6 @@ export default function App() {
       // ── Wallet disconnected — reset all dashboard state ───────────────
       setPortfolio(null);
       setTransactions(null);
-      setWalletAddress("");
       setError(null);
       setActiveTab("overview");
       setFailedNftKeys(new Set());
@@ -579,6 +578,22 @@ export default function App() {
                   `}
                 >
                   {tab.label}
+                  {/* NEW badge for bridge tab */}
+                  {tab.isNew && (
+                    <span
+                      className="ml-1.5 text-xs font-bold rounded-full px-1.5 py-0.5"
+                      style={{
+                        background: "rgba(16,185,129,0.18)",
+                        color: "#10b981",
+                        border: "1px solid rgba(16,185,129,0.35)",
+                        fontSize: "9px",
+                        letterSpacing: "0.05em",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      NEW
+                    </span>
+                  )}
                   {/* Badge counts on tabs */}
                   {tab.id === "tokens" && portfolio.tokens?.length > 0 && (
                     <span className="ml-1.5 text-xs bg-gray-700 text-gray-300 rounded-full px-1.5 py-0.5">
@@ -750,7 +765,7 @@ export default function App() {
               <div className="transition-all duration-200">
                 <TransactionHistory
                   transactions={transactions?.transactions || []}
-                  loading={txLoading}
+                  loading={false}
                 />
               </div>
             )}
@@ -778,6 +793,16 @@ export default function App() {
                 <AiAdvisor portfolio={portfolio} />
               </div>
             )}
+
+            {/* ── BRIDGE TAB ───────────────────────────────────────────── */}
+            {activeTab === "bridge" && (
+              <div className="transition-all duration-200">
+                <BridgePanel
+                  isConnected={isConnected}
+                  walletAddress={connectedAddress}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -795,8 +820,18 @@ export default function App() {
           </div>
         )}
 
+        {/* ── Bridge tab — always visible (no portfolio needed) ────────── */}
+        {activeTab === "bridge" && !portfolio && !loading && (
+          <div className="mt-8 transition-all duration-200">
+            <BridgePanel
+              isConnected={isConnected}
+              walletAddress={connectedAddress}
+            />
+          </div>
+        )}
+
         {/* ── Welcome state — no search yet ────────────────────────────── */}
-        {!portfolio && !loading && !error && activeTab !== "ai" && activeTab !== "resilience" && (
+        {!portfolio && !loading && !error && activeTab !== "ai" && activeTab !== "resilience" && activeTab !== "bridge" && (
           <div className="mt-20 text-center">
             {/* Hero icon */}
             <div

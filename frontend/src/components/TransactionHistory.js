@@ -13,7 +13,6 @@
  */
 
 import React from "react";
-import { formatUSD } from "../services/api";
 
 // ---------------------------------------------------------------------------
 // Helper: relative time from an ISO-8601 timestamp string

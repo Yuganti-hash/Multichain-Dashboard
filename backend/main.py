@@ -54,6 +54,7 @@ from utils import prism_state as prism_state_util
 from utils.auth import verify_signature
 from utils.gas          import get_gas_estimates
 from utils.chain_monitor import get_chain_health, get_all_chains_health
+from utils.bridge       import get_bridge_quote, get_bridge_status
 from ai_advisor import ask_advisor, is_advisor_ready
 from database import AsyncSessionLocal, close_db, get_db, init_db
 from models import HealthScore, PortfolioCache, User, Wallet
@@ -84,6 +85,7 @@ SOVEREIGN_API_KEY: str | None = os.getenv("SOVEREIGN_API_KEY")
 
 # Routes that bypass API key auth (FastAPI internal + health check + gas + WS + auth)
 _AUTH_SKIP_PREFIXES = ("/health", "/docs", "/openapi", "/redoc", "/gas", "/chain-health", "/ws", "/auth")
+# NOTE: /bridge is intentionally NOT in the skip list — it requires X-API-Key.
 
 # ---------------------------------------------------------------------------
 # App initialisation
@@ -1083,6 +1085,195 @@ async def get_history(request: Request):
             status_code=503,
             detail=f"History unavailable: {exc}",
         ) from exc
+
+
+# ===========================================================================
+# ROUTE — GET /bridge/quote
+# ===========================================================================
+
+# Chains that this endpoint accepts (EVM-only; Solana bridging is Phase 5+).
+_BRIDGE_SUPPORTED_CHAINS = frozenset({"ethereum", "polygon", "arbitrum", "bsc"})
+
+
+@app.get("/bridge/quote", summary="LayerZero cross-chain bridge fee estimate")
+@limiter.limit("20/minute")
+async def bridge_quote(
+    request: Request,
+    from_chain: str,
+    to_chain: str,
+    token: str,
+    amount: str,
+    sender: str,
+):
+    """
+    Return a LayerZero V2 fee quote for bridging tokens cross-chain.
+
+    Authentication
+    --------------
+    Requires ``X-API-Key`` header (same key as all authenticated endpoints).
+
+    Query parameters
+    ----------------
+    from_chain : str
+        Source chain (``ethereum``, ``polygon``, ``arbitrum``, ``bsc``).
+    to_chain : str
+        Destination chain (same set).
+    token : str
+        ERC-20 token contract address on the source chain
+        (pass the zero address ``0x000…`` for native ETH).
+    amount : str
+        Token amount in wei as a decimal string, e.g. ``"1000000000000000000"``
+        for 1 ETH.
+    sender : str
+        Sender/recipient wallet address (0x-prefixed, 42 chars).
+
+    Returns
+    -------
+    200  {
+           "from_chain": str,
+           "to_chain": str,
+           "amount_wei": int,
+           "amount_eth": float,
+           "lz_fee_wei": int,
+           "lz_fee_eth": float,
+           "lz_fee_usd": float,
+           "estimated_time_seconds": int,
+           "src_eid": int,
+           "dst_eid": int,
+           "quote_valid_until": str,
+           "simulated": bool
+         }
+    400  Unsupported chain or invalid amount
+    401  Missing / invalid X-API-Key
+    429  Rate limit exceeded (20 req/min)
+    """
+    # ── Validate chains ──────────────────────────────────────────────────────
+    from_key = from_chain.lower().strip()
+    to_key   = to_chain.lower().strip()
+
+    if from_key not in _BRIDGE_SUPPORTED_CHAINS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unsupported source chain '{from_chain}'. "
+                f"Supported: {', '.join(sorted(_BRIDGE_SUPPORTED_CHAINS))}."
+            ),
+        )
+    if to_key not in _BRIDGE_SUPPORTED_CHAINS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unsupported destination chain '{to_chain}'. "
+                f"Supported: {', '.join(sorted(_BRIDGE_SUPPORTED_CHAINS))}."
+            ),
+        )
+    if from_key == to_key:
+        raise HTTPException(
+            status_code=400,
+            detail="from_chain and to_chain must differ.",
+        )
+
+    # ── Validate amount ───────────────────────────────────────────────────────
+    try:
+        amount_wei = int(amount)
+        if amount_wei <= 0:
+            raise ValueError("amount must be a positive integer in wei.")
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid amount: {exc}",
+        ) from exc
+
+    # ── Delegate to bridge utility ────────────────────────────────────────────
+    try:
+        quote = await get_bridge_quote(
+            from_chain=from_key,
+            to_chain=to_key,
+            token_address=token,
+            amount_wei=amount_wei,
+            sender_address=sender,
+        )
+        return quote
+
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Bridge quote failed: {exc}",
+        ) from exc
+
+
+
+# ===========================================================================
+# ROUTE — GET /bridge/status/{tx_hash}
+# ===========================================================================
+@app.get("/bridge/status/{tx_hash}", summary="Bridge transaction status via LayerZero")
+@limiter.limit("30/minute")
+async def bridge_status(
+    request: Request,
+    tx_hash: str,
+    from_chain: str,
+):
+    """
+    Return the on-chain status of a bridge transaction.
+
+    Authentication
+    --------------
+    Requires ``X-API-Key`` header.
+
+    Path parameter
+    --------------
+    tx_hash : str
+        Transaction hash to look up — must be 0x-prefixed and exactly
+        66 characters long (0x + 64 hex digits).
+
+    Query parameters
+    ----------------
+    from_chain : str
+        Source chain where the transaction was submitted
+        (``ethereum``, ``polygon``, ``arbitrum``, ``bsc``).
+
+    Returns
+    -------
+    200  {
+           "tx_hash":       str,
+           "from_chain":    str,
+           "status":        "pending" | "confirmed" | "failed" | "not_found",
+           "confirmations": int,
+           "block_number":  int | None,
+           "lz_scan_url":   str,
+           "src_tx_url":    str,
+           "message":       str
+         }
+    400  Invalid tx_hash format or unsupported from_chain
+    401  Missing / invalid X-API-Key
+    429  Rate limit exceeded (30 req/min)
+    """
+    # ── Validate tx_hash format ───────────────────────────────────────────────
+    if not tx_hash.startswith("0x") or len(tx_hash) != 66:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid tx_hash '{tx_hash}'. "
+                "Must start with '0x' and be exactly 66 characters long."
+            ),
+        )
+
+    # ── Validate from_chain ───────────────────────────────────────────────────
+    chain_key = from_chain.lower().strip()
+    if chain_key not in _BRIDGE_SUPPORTED_CHAINS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unsupported source chain '{from_chain}'. "
+                f"Supported: {', '.join(sorted(_BRIDGE_SUPPORTED_CHAINS))}."
+            ),
+        )
+
+    # ── Delegate to bridge utility (never raises) ────────────────────────────
+    status_data = await get_bridge_status(tx_hash=tx_hash, from_chain=chain_key)
+    return status_data
 
 
 # ---------------------------------------------------------------------------
