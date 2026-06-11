@@ -11,6 +11,7 @@ Run with:
 
 import asyncio
 import os
+from datetime import datetime, timedelta, timezone
 
 # ---------------------------------------------------------------------------
 # Load .env FIRST — before any project modules that call os.getenv() at
@@ -20,14 +21,21 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+import bcrypt
 import uvicorn
-from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from jose import JWTError, jwt
+from pydantic import BaseModel, EmailStr
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+import json
+
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Chain modules — each exposes get_portfolio() and get_transactions()
@@ -47,8 +55,20 @@ from utils.auth import verify_signature
 from utils.gas          import get_gas_estimates
 from utils.chain_monitor import get_chain_health, get_all_chains_health
 from ai_advisor import ask_advisor, is_advisor_ready
-from database import close_db, init_db
+from database import AsyncSessionLocal, close_db, get_db, init_db
+from models import HealthScore, PortfolioCache, User, Wallet
 from state_machine import StateMachine
+
+# (AsyncSessionLocal, Wallet, PortfolioCache, json, func, pg_insert are already
+#  imported above via the database/models/sqlalchemy lines.)
+
+
+# ---------------------------------------------------------------------------
+# JWT configuration — read secret from .env
+# ---------------------------------------------------------------------------
+JWT_SECRET:    str = os.getenv("JWT_SECRET", "change-me-in-production-sovereign-2025")
+JWT_ALGORITHM: str = "HS256"
+JWT_EXPIRE_HOURS: int = 24
 
 # (load_dotenv() already called above, before chain imports)
 
@@ -62,8 +82,8 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["30/minute"])
 # ---------------------------------------------------------------------------
 SOVEREIGN_API_KEY: str | None = os.getenv("SOVEREIGN_API_KEY")
 
-# Routes that bypass API key auth (FastAPI internal + health check + gas + WS)
-_AUTH_SKIP_PREFIXES = ("/health", "/docs", "/openapi", "/redoc", "/gas", "/chain-health", "/ws")
+# Routes that bypass API key auth (FastAPI internal + health check + gas + WS + auth)
+_AUTH_SKIP_PREFIXES = ("/health", "/docs", "/openapi", "/redoc", "/gas", "/chain-health", "/ws", "/auth")
 
 # ---------------------------------------------------------------------------
 # App initialisation
@@ -208,6 +228,29 @@ async def get_portfolio(request: Request, wallet_address: str):
       7. Return a unified JSON response.
     """
     try:
+        # ------------------------------------------------------------------
+        # Cache check — return immediately if a fresh snapshot exists
+        # (updated within the last 5 minutes).  Skips all external calls.
+        # ------------------------------------------------------------------
+        _CACHE_TTL_SECONDS = 300  # 5 minutes
+        try:
+            async with AsyncSessionLocal() as _cs:
+                _cached = await _cs.execute(
+                    select(PortfolioCache).where(
+                        PortfolioCache.wallet_address == wallet_address
+                    )
+                )
+                _row = _cached.scalar_one_or_none()
+                if _row is not None:
+                    _age = (
+                        datetime.now(timezone.utc) - _row.updated_at
+                    ).total_seconds()
+                    if _age < _CACHE_TTL_SECONDS:
+                        return json.loads(_row.data)
+        except Exception as _ce:
+            # Cache read failure must never block a live fetch
+            print(f"[portfolio] cache-read skipped: {_ce}")
+
         # ------------------------------------------------------------------
         # Step 1 — Fetch all four chains + Ethereum tx history in parallel.
         # Each get_portfolio() returns:
@@ -374,9 +417,9 @@ async def get_portfolio(request: Request, wallet_address: str):
         )
 
         # ------------------------------------------------------------------
-        # Final response
+        # Final response payload
         # ------------------------------------------------------------------
-        return {
+        response_payload = {
             "wallet":            wallet_address,
             "total_value_usd":   round(total_value_usd, 2),
             "transaction_count": len(transactions),
@@ -400,6 +443,61 @@ async def get_portfolio(request: Request, wallet_address: str):
             "chain_health":      chain_health,    # ← real-time per-chain health
         }
 
+        # ------------------------------------------------------------------
+        # Persist to DB — failures are fully isolated from the response.
+        # ------------------------------------------------------------------
+        try:
+            async with AsyncSessionLocal() as _db:
+                # 1. Upsert wallet address
+                await _db.execute(
+                    pg_insert(Wallet)
+                    .values(address=wallet_address, chain="multichain")
+                    .on_conflict_do_nothing(constraint="uq_wallet_address_chain")
+                )
+
+                # 2. Upsert portfolio cache (one row per wallet, updated_at auto-bumped)
+                _now = datetime.now(timezone.utc)
+                await _db.execute(
+                    pg_insert(PortfolioCache)
+                    .values(
+                        wallet_address=wallet_address,
+                        data=json.dumps(response_payload),
+                        updated_at=_now,
+                    )
+                    .on_conflict_do_update(
+                        constraint="uq_portfolio_wallet",
+                        set_={
+                            "data":       json.dumps(response_payload),
+                            "updated_at": _now,
+                        },
+                    )
+                )
+
+                # 3. Upsert health score for each chain
+                _chain_scores: dict = prism_health.get("chain_scores", {})
+                for _chain_name, _score in _chain_scores.items():
+                    await _db.execute(
+                        pg_insert(HealthScore)
+                        .values(
+                            chain=_chain_name,
+                            score=float(_score),
+                            updated_at=_now,
+                        )
+                        .on_conflict_do_update(
+                            constraint="uq_health_chain",
+                            set_={
+                                "score":      float(_score),
+                                "updated_at": _now,
+                            },
+                        )
+                    )
+
+                await _db.commit()
+        except Exception as _dbe:
+            print(f"[portfolio] DB write skipped (non-fatal): {_dbe}")
+
+        return response_payload
+
     except HTTPException:
         # Re-raise FastAPI HTTP exceptions (e.g., 404) without wrapping
         raise
@@ -412,6 +510,47 @@ async def get_portfolio(request: Request, wallet_address: str):
             status_code=500,
             detail=f"Failed to fetch portfolio for {wallet_address}: {exc}",
         ) from exc
+
+
+# ===========================================================================
+# ROUTE 1b — GET /portfolio/cache/{wallet_address}
+# ===========================================================================
+@app.get("/portfolio/cache/{wallet_address}", summary="Check portfolio cache")
+@limiter.limit("60/minute")
+async def get_portfolio_cache(request: Request, wallet_address: str):
+    """
+    Check whether a fresh (< 5 minute) portfolio cache entry exists for
+    the given wallet address.
+
+    Called by the frontend *before* hitting /portfolio so it can display
+    cached data immediately and show a “Cached” badge.
+
+    Returns
+    -------
+    200  { fresh: true,  data: <portfolio payload> }  — cache hit, < 5 min old
+    200  { fresh: false }                              — cache miss or stale
+    200  { fresh: false, error: str }                  — DB unavailable (non-fatal)
+    """
+    _CACHE_TTL_SECONDS = 300  # 5 minutes
+    try:
+        async with AsyncSessionLocal() as _cs:
+            _cached = await _cs.execute(
+                select(PortfolioCache).where(
+                    PortfolioCache.wallet_address == wallet_address
+                )
+            )
+            _row = _cached.scalar_one_or_none()
+            if _row is None:
+                return {"fresh": False}
+            _age = (
+                datetime.now(timezone.utc) - _row.updated_at
+            ).total_seconds()
+            if _age >= _CACHE_TTL_SECONDS:
+                return {"fresh": False}
+            return {"fresh": True, "data": json.loads(_row.data)}
+    except Exception as _ce:
+        # DB failure is non-fatal: frontend falls through to live fetch
+        return {"fresh": False, "error": str(_ce)}
 
 
 # ===========================================================================
@@ -604,7 +743,144 @@ async def ws_chain_health(websocket: WebSocket):
 
 
 # ===========================================================================
-# ROUTE 4b — POST /verify-wallet
+# AUTH MODELS (Pydantic request bodies)
+# ===========================================================================
+
+class RegisterRequest(BaseModel):
+    """
+    Request body for POST /auth/register.
+    name     : Display name (1–80 chars).
+    email    : Valid email address — used as the unique login identifier.
+    password : Plain-text password (min 8 chars). Hashed server-side with bcrypt.
+    """
+    name:     str
+    email:    str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    """
+    Request body for POST /auth/login.
+    email    : The registered email.
+    password : Plain-text password — verified against the stored bcrypt hash.
+    """
+    email:    str
+    password: str
+
+
+# ---------------------------------------------------------------------------
+# JWT helper
+# ---------------------------------------------------------------------------
+def _create_jwt(user_id: int, email: str, name: str) -> str:
+    """
+    Create a signed HS256 JWT with a 24-hour expiry.
+    Payload: { sub: str(user_id), email, name, exp }
+    """
+    expire = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRE_HOURS)
+    payload = {
+        "sub":   str(user_id),
+        "email": email,
+        "name":  name,
+        "exp":   expire,
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+# ===========================================================================
+# ROUTE — POST /auth/register
+# ===========================================================================
+@app.post("/auth/register", summary="Register a new user account")
+@limiter.limit("10/minute")
+async def auth_register(
+    request: Request,
+    body: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Register a new dashboard user.
+
+    - Validates name, email, and password length.
+    - Hashes the password with bcrypt (12 rounds).
+    - Stores the user in the PostgreSQL `users` table.
+    - Returns a signed JWT on success.
+
+    Returns
+    -------
+    200  { token: str, name: str, email: str }
+    400  email already registered
+    422  validation failure
+    """
+    # ── Input validation ────────────────────────────────────────────────────
+    name     = body.name.strip()
+    email    = body.email.strip().lower()
+    password = body.password
+
+    if not name or len(name) > 80:
+        raise HTTPException(status_code=422, detail="Name must be 1–80 characters.")
+    if not email or "@" not in email:
+        raise HTTPException(status_code=422, detail="A valid email address is required.")
+    if len(password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters.")
+
+    # ── Check for duplicate email ────────────────────────────────────────────
+    existing = await db.execute(select(User).where(User.email == email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="An account with this email already exists.")
+
+    # ── Hash password & persist ──────────────────────────────────────────────
+    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+    user = User(name=name, email=email, password_hash=pw_hash)
+    db.add(user)
+    await db.flush()   # populate user.id without full commit yet
+    await db.commit()
+    await db.refresh(user)
+
+    token = _create_jwt(user.id, user.email, user.name)
+    return {"token": token, "name": user.name, "email": user.email}
+
+
+# ===========================================================================
+# ROUTE — POST /auth/login
+# ===========================================================================
+@app.post("/auth/login", summary="Sign in and receive a JWT")
+@limiter.limit("15/minute")
+async def auth_login(
+    request: Request,
+    body: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Authenticate an existing user by email + password.
+
+    - Looks up the user in PostgreSQL by email.
+    - Verifies the submitted password against the stored bcrypt hash.
+    - Returns a new signed JWT on success.
+
+    Returns
+    -------
+    200  { token: str, name: str, email: str }
+    401  invalid credentials
+    """
+    email    = body.email.strip().lower()
+    password = body.password
+
+    result = await db.execute(select(User).where(User.email == email))
+    user   = result.scalar_one_or_none()
+
+    # Use a constant-time check regardless of whether user exists
+    dummy_hash = b"$2b$12$invalidhashpaddingtomatchlength000000000000000000000"
+    stored = user.password_hash.encode() if user else dummy_hash
+    password_ok = bcrypt.checkpw(password.encode(), stored)
+
+    if not user or not password_ok:
+        raise HTTPException(status_code=401, detail="Incorrect email or password.")
+
+    token = _create_jwt(user.id, user.email, user.name)
+    return {"token": token, "name": user.name, "email": user.email}
+
+
+# ===========================================================================
+# ROUTE 4b — POST /verify-wallet  (original, unchanged)
 # ===========================================================================
 
 class WalletVerifyRequest(BaseModel):
@@ -767,6 +1043,46 @@ def _rule_based_fallback(question: str, portfolio: dict) -> str:
         f"Ask me about: risk score, PRISM health, chain breakdown, "
         f"rebalancing advice, or token values."
     )
+
+
+# ===========================================================================
+# ROUTE — GET /history   (public, no auth)
+# Returns the last 10 unique wallets that have been queried.
+# ===========================================================================
+@app.get("/history", summary="Last 10 searched wallets")
+@limiter.limit("30/minute")
+async def get_history(request: Request):
+    """
+    Return the 10 most recently added wallet addresses from the
+    ``wallets`` table, ordered newest-first.
+
+    No authentication required — wallet addresses are not sensitive
+    (they are public blockchain identifiers).
+
+    Returns
+    -------
+    200  { wallets: [ { address: str, created_at: str } ] }
+    503  database unavailable
+    """
+    try:
+        async with AsyncSessionLocal() as _db:
+            result = await _db.execute(
+                select(Wallet.address, Wallet.created_at)
+                .order_by(Wallet.created_at.desc())
+                .limit(10)
+            )
+            rows = result.all()
+            return {
+                "wallets": [
+                    [row.address, row.created_at.isoformat() if hasattr(row.created_at, 'isoformat') else str(row.created_at)]
+                    for row in rows
+                ]
+            }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"History unavailable: {exc}",
+        ) from exc
 
 
 # ---------------------------------------------------------------------------

@@ -38,6 +38,7 @@ import ExecutionRouter    from "./components/ExecutionRouter";
 import ResilienceDashboard from "./components/ResilienceDashboard";
 import ChainHealthWidget   from "./components/ChainHealthWidget";
 import PrismStateCard      from "./components/PrismStateCard";
+import CreditScoreCard     from "./components/CreditScoreCard";
 import ErrorBoundary       from "./components/ErrorBoundary";
 
 import { fetchPortfolio, fetchTransactions, checkHealth } from "./services/api";
@@ -239,6 +240,57 @@ export default function App() {
   /** Track previous connection state so we only fire on the connect edge. */
   const prevConnectedRef = useRef(false);
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  // NOTE: handleSearch is defined HERE — before any useEffect that references
+  // it — so the useCallback is stable by the time the sign/verify effect runs.
+  // Defining it after the effect (original order) caused a stale-closure bug
+  // in React StrictMode where the portfolio never loaded on first wallet connect.
+
+  /**
+   * Handle wallet search.
+   *
+   * Guard rules (evaluated before any fetch):
+   *   1. Wallet connected but NOT verified → block, ask user to sign.
+   *   2. Wallet connected AND verified     → allow (owner-verified mode).
+   *   3. No wallet connected               → allow (read-only / demo mode).
+   *
+   * Fetches portfolio first, then transactions sequentially so we can
+   * display portfolio data immediately without waiting for tx history.
+   */
+  const handleSearch = useCallback(async (address) => {
+    // ── Auth guard ──────────────────────────────────────────────────────────
+    if (isConnected && !isVerified) {
+      // Wallet is plugged in but the user hasn't signed the challenge yet.
+      setError("Please sign to verify wallet ownership");
+      return;
+    }
+    // Note: !isConnected && !isVerified is the read-only / demo path — allowed.
+
+    // ── Proceed with fetch ───────────────────────────────────────────────────
+    setLoading(true);
+    setError(null);
+    setPortfolio(null);
+    setTransactions(null);
+    setWalletAddress(address);
+    setActiveTab("overview");
+    setFailedNftKeys(new Set());
+
+    try {
+      // Fetch portfolio (primary — shown first)
+      const portfolioData = await fetchPortfolio(address);
+      console.log("portfolio.chain_breakdown", portfolioData.chain_breakdown);
+      setPortfolio(portfolioData);
+
+      // Fetch transactions sequentially after portfolio is ready
+      const txData = await fetchTransactions(address);
+      setTransactions(txData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [isConnected, isVerified]);
+
   // ── Effects ───────────────────────────────────────────────────────────────
 
   /** Ping the backend once on mount to determine API availability. */
@@ -315,37 +367,6 @@ export default function App() {
       setIsVerified(false);
     }
   }, [isConnected, connectedAddress, handleSearch, signMessageAsync]);
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
-  /**
-   * Handle wallet search.
-   * Fetches portfolio first, then transactions sequentially so we can
-   * display portfolio data immediately without waiting for tx history.
-   */
-  const handleSearch = useCallback(async (address) => {
-    setLoading(true);
-    setError(null);
-    setPortfolio(null);
-    setTransactions(null);
-    setWalletAddress(address);
-    setActiveTab("overview");
-    setFailedNftKeys(new Set());
-
-    try {
-      // Fetch portfolio (primary — shown first)
-      const portfolioData = await fetchPortfolio(address);
-      setPortfolio(portfolioData);
-
-      // Fetch transactions sequentially after portfolio is ready
-      const txData = await fetchTransactions(address);
-      setTransactions(txData);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -457,7 +478,30 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-8">
 
         {/* Search bar — always visible */}
-        <SearchBar onSearch={handleSearch} loading={loading} />
+        <SearchBar onSearch={handleSearch} loading={loading} signLoading={signLoading} />
+
+        {/* Wallet-signature awaiting banner */}
+        {signLoading && (
+          <div
+            className="max-w-2xl mx-auto -mt-4 mb-4 flex items-center gap-3
+              bg-indigo-950/70 border border-indigo-700/60
+              rounded-xl px-4 py-3 text-indigo-200 text-sm"
+            role="status"
+            aria-live="polite"
+          >
+            {/* CSS spinner */}
+            <span
+              className="inline-block w-4 h-4 rounded-full border-2
+                border-indigo-400/30 border-t-indigo-300 animate-spin flex-shrink-0"
+              aria-hidden="true"
+            />
+            <span>
+              <span className="font-semibold text-indigo-100">Awaiting wallet signature…</span>
+              {" "}
+              <span className="text-indigo-400 text-xs">Please confirm in your wallet.</span>
+            </span>
+          </div>
+        )}
 
         {/* Gas estimator — always visible, auto-refreshes every 30s */}
         <GasEstimator />
@@ -559,6 +603,10 @@ export default function App() {
             {activeTab === "overview" && (
               <div className="space-y-6 transition-all duration-200">
                 <PortfolioSummary portfolio={{ ...portfolio, nfts: visibleNfts }} />
+
+                {portfolio.credit_score && (
+                  <CreditScoreCard creditScore={portfolio.credit_score} />
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <ChainPieChart data={portfolio.chain_breakdown} />

@@ -60,9 +60,9 @@ function validateAddress(address) {
 /**
  * SearchBar component — renders an address input with validation and submit.
  *
- * @param {{ onSearch: Function, loading: boolean }} props
+ * @param {{ onSearch: Function, loading: boolean, signLoading: boolean }} props
  */
-export default function SearchBar({ onSearch, loading }) {
+export default function SearchBar({ onSearch, loading, signLoading }) {
   const [inputValue,      setInputValue]      = useState("");
   const [validationError, setValidationError] = useState(null);
 
@@ -128,12 +128,17 @@ export default function SearchBar({ onSearch, loading }) {
             </span>
           )}
 
-          {/* RainbowKit connect / account button */}
-          <ConnectButton
-            showBalance={false}
-            chainStatus="none"
-            accountStatus="address"
-          />
+          {/* RainbowKit connect / account button — disabled while sign is pending */}
+          <div
+            style={signLoading ? { pointerEvents: "none", opacity: 0.5 } : undefined}
+            title={signLoading ? "Awaiting wallet signature…" : undefined}
+          >
+            <ConnectButton
+              showBalance={false}
+              chainStatus="none"
+              accountStatus="address"
+            />
+          </div>
         </div>
       </div>
 
@@ -146,7 +151,7 @@ export default function SearchBar({ onSearch, loading }) {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Enter wallet address (ETH, Polygon, BSC, or Solana)"
-          disabled={loading}
+          disabled={loading || signLoading}
           className={`
             flex-1 bg-gray-800 border rounded-xl px-4 py-3
             text-white placeholder-gray-500 text-sm
@@ -160,7 +165,8 @@ export default function SearchBar({ onSearch, loading }) {
         {/* Search button */}
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || signLoading}
+          title={signLoading ? "Awaiting wallet signature…" : undefined}
           className="
             bg-blue-600 hover:bg-blue-500 active:bg-blue-700
             text-white font-semibold px-6 py-3 rounded-xl
