@@ -130,7 +130,22 @@ pip install -r requirements.txt
 # Configure environment variables
 cp .env.example .env
 # Open .env and paste in your API keys
+```
 
+#### Database Setup (Optional)
+The backend features an automatic DB fallback mechanism. If PostgreSQL is not running or not configured, the backend will automatically fallback to in-memory user and session storage so you can still register, login, and use the dashboard.
+
+To enable persistent storage using PostgreSQL:
+1. Ensure your PostgreSQL service is running.
+2. In your `.env` file, configure the connection URL:
+   `DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/sovereign`
+3. Run the one-time database & tables setup script:
+   ```bash
+   python create_db.py
+   ```
+
+#### Start Backend:
+```bash
 # Start the backend
 uvicorn main:app --reload --port 8000
 
