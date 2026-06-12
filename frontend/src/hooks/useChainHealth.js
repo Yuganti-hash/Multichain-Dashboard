@@ -23,17 +23,26 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-// Derive URLs from the current host so they work behind the CRA dev proxy
-// and in production without hard-coding localhost.
-const _host      = window.location.hostname;
-const _port      = window.location.port;
-const _wsProto   = window.location.protocol === 'https:' ? 'wss' : 'ws';
+// Derive URLs from the API URL or current host so they work behind the CRA dev proxy
+// and in production with different frontend/backend origins.
+const getBackendUrls = () => {
+  const apiUrl = process.env.REACT_APP_API_URL || '';
+  if (apiUrl) {
+    // apiUrl looks like https://domain.com
+    const restUrl = `${apiUrl}/chain-health`;
+    const wsUrl = apiUrl.replace(/^http/, 'ws') + '/ws/chain-health';
+    return { restUrl, wsUrl };
+  }
+  // Fallback for same-origin dev proxy
+  const _host = window.location.hostname;
+  const _port = window.location.port;
+  const _wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const wsUrl = `${_wsProto}://${_host}${_port ? `:${_port}` : ''}/ws/chain-health`;
+  const restUrl = `/chain-health`;
+  return { restUrl, wsUrl };
+};
 
-// When running via CRA dev server (localhost:3000) the proxy forwards
-// /ws/... and /chain-health to the FastAPI backend automatically.
-// In production the React bundle is served from the same origin as the API.
-const WS_URL     = `${_wsProto}://${_host}${_port ? `:${_port}` : ''}/ws/chain-health`;
-const REST_URL   = `/chain-health`;   // relative — forwarded by proxy in dev
+const { restUrl: REST_URL, wsUrl: WS_URL } = getBackendUrls();
 const WS_RECONNECT_MS = 5_000;   // wait before reconnect attempt
 const POLL_INTERVAL_MS= 30_000;  // HTTP polling interval when WS has given up
 const MAX_WS_FAILURES = 3;       // consecutive failures before switching to poll

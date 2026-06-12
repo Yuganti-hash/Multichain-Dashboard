@@ -5454,7 +5454,9 @@
     })();
 
     /* ===== BACKEND CONFIG ===== */
-    var API_BASE = 'http://localhost:8000';  // FastAPI backend
+    var API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:8000'
+      : 'https://multichain-dashboard-1qcn.onrender.com';
     var API_KEY  = '';
     var CHAIN_COLORS = { ethereum: '#627EEA', polygon: '#8247E5', bsc: '#F3BA2F', solana: '#9945FF', arbitrum: '#28A0F0' };
     var CHAIN_LABELS = { ethereum: 'Ethereum', polygon: 'Polygon', bsc: 'BNB Chain', solana: 'Solana', arbitrum: 'Arbitrum' };
@@ -6398,7 +6400,7 @@
 
       var API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8000'
-        : '';
+        : 'https://multichain-dashboard-1qcn.onrender.com';
 
       try {
         var url = API_BASE + '/bridge/quote?from_chain=' + encodeURIComponent(fromChain)
